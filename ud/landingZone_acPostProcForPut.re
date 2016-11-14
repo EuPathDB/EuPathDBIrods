@@ -6,9 +6,15 @@
 # where the userId is extracted from the tarball name and the dataset id is the data id given by irods to this particular file.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*userId = trimr(triml(*fileName,"_u"),"_t");  #expect file name in format dataset_u\d+_t\d+.tgz
-    *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-  	msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UpStatus);
-    writeLine("serverLog", "Unpacked $objPath to *userDatasetPath");
+	# insure the the user id is a positive number
+	if(int(*userId) > 0) {
+	  # unpack the tarball under the user datasets folder using the data id as the dataset id.	
+      *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
+  	  msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UpStatus);
+	  # remove the tarball following unpacking.
+	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DepStatus);
+      writeLine("serverLog", "Unpacked $objPath to *userDatasetPath");
+    }
 }
 
 
