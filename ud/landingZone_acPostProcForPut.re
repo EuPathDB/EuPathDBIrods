@@ -10,11 +10,17 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	if(int(*userId) > 0) {
 	  # unpack the tarball under the user datasets folder using the data id as the dataset id.	
       *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-  	  msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UpStatus);
+	  writeLine("serverLog", "Unpacking $objPath to *userDatasetPath");
+  	  msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UnpkStatus):::msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
+	  writeLine("serverLog", "Unpacked $objPath successfully");
 	  # remove the tarball following unpacking.
-	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DepStatus);
-      writeLine("serverLog", "Unpacked $objPath to *userDatasetPath");
+	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
+      writeLine("serverLog", "Removed $objPath tarball");
     }
+	else {
+	  # file name is mis-formatted, so toss.	
+	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
+	}
 }
 
 
