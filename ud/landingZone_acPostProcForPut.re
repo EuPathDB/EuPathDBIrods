@@ -15,8 +15,9 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  writeLine("serverLog", "Unpacked $objPath successfully");
 	  # remove the tarball following unpacking.
 	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
-      writeLine("serverLog", "Removed $objPath tarball");
-	  acPostEvent("Someone used my iput!");
+	  writeLine("serverLog", "Removed $objPath tarball");
+	  acCreateEventContentForUnpack(*userDatasetPath, *userId, $dataId, *content);
+	  acPostEvent(*content);
     }
 	else {
 	  # file name is mis-formatted, so toss.	
