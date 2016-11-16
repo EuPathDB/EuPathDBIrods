@@ -14,7 +14,7 @@ def main():
   parsedJson = json.loads(args[0])
   type = parsedJson['type']
   dependencies = parsedJson['dependencies']
-  output = "ud_type_name=" + type['name'] + "%" + "ud_type_version=" + type['version'] + "%" + "dependency=" + dependencies[0]['resourceIdentifier'] + "%" + "dependency_version=" + dependencies[0]['resourceVersion']
+  output = "owner_user_id=" + type['owner'] + "%" + "ud_type_name=" + type['name'] + "%" + "ud_type_version=" + type['version'] + "%" + "dependency=" + dependencies[0]['resourceIdentifier'] + "%" + "dependency_version=" + dependencies[0]['resourceVersion']
   sys.stdout.write(output)
 
 if __name__ == "__main__":
