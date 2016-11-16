@@ -48,9 +48,13 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  msiDataObjCreate(*installDataObj,"destRescName=$rescName",*installFileDescriptor);
 	  msiDataObjClose(*installFileDescriptor,*installStatus);
 	  
-	  # remove the tarball following unpacking.
+	  # Remove the tarball following unpacking.
 	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
 	  writeLine("serverLog", "Removed $objPath tarball");
+	  
+	  # Fabricate an event.
+	  acCreateEventContentForUnpack(*userDatasetPath, $dataId, *content);
+	  acPostEvent(*content);
     }
 	else {
 	  # file name is mis-formatted, so toss.	
@@ -104,6 +108,7 @@ acCreateEventContentForUnpack(*userDatasetPath, *datasetId, *content) {
 	writeLine("serverLog", *content);
 }
 
+# uninstall projects user_dataset_id ud_type_name ud_type_version
 acDatasetPostProcForRmColl() {
 	writeLine("serverLog", "Need to fire off an event");
 }
