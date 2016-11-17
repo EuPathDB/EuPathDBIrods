@@ -1,3 +1,7 @@
+# This file goes in /etc/irods (need sudo).  Reference to it is made in
+# /etc/irods/server_config.json (need sudo) as follows:
+# "re_rulebase_set": [{"filename": "ud"},{"filename":"core"}] there could be other rule sets
+
 # -------------------- PEP Overrides ----------------- #
 
 # Custom event hook for user dataset post processiong following an iput
@@ -22,11 +26,7 @@ acPreprocForRmColl {
 }
 
 acPostProcForCreate {
-  writeLine("serverLog", "PEP acPostProceForCreate - $objPath");
-  msiSplitPath($objPath, *fileDir, *fileName);
-  if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*" && *fileName == ".install") then {
-    acDatasetInstallPostProcForPut(*fileDir);
-  }
+  writeLine("serverLog", "PEP acPostProcForCreate - $objPath");
 }
 
 # -------------------- Supporting Actions ----------------- #
@@ -67,19 +67,15 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 }
 
 
-acDatasetInstallPostProcForPut(*fileDir) {
-  msiSplitPath(*fileDir, *parentDir, *datasetId);
-  writeLine("serverLog", "Responding to an install of *datasetId");
-  acCreateEventContentForUnpack(*fileDir, *datasetId, *content);
-  acPostEvent(*content);
-}
-
 # This rule posts the content provided to a new event data object in the events
 # collection.  The use of systemTime in the event data object name may not be sufficient
 # to insure uniqueness.  May need to obtain something from the caller to help insure that.
+# Since iRODS microservices only return timestamps in seconds, we are resorting to a
+# python call to get the timestamp in milliseconds (could have been a shell call)
 acPostEvent(*eventContent) {
-  msiGetIcatTime(*systemTime,"unix");
-  *fileName = "event_*systemTime.txt";
+  msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
+  msiGetStdoutInExecCmdOut(*Result,*Out)
+  *fileName = "event_*Out.txt";
   *eventPath = "/ebrc/workspaces/events/*fileName";
   msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
   msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
@@ -97,6 +93,13 @@ acDatasetPreprocForRmColl() {
 	acPostEvent(*content)
 }
 
+# Retrieves the dataset.json content in the form of key/value pairs that are digestable via the iRODS microservices.
+# *userDatasetPath - input - absolute path to the dataset of interest (/ebrc/workspaces/users/<userid>/datasets/<datasetid)
+# *content - output - a string containing key/value pairs
+# In addition to the dataset.json content and system timestamp in milliseconds is returned to provide a unique identifier
+# for any subsequent file holding this content
+# TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
+# concerns.
 acGetDatasetJsonContent(*userDatasetPath, *content) {
 	*DatasetConfigPath = "*userDatasetPath/dataset.json";
 	*results = SELECT DATA_SIZE WHERE COLL_NAME = *userDatasetPath AND DATA_NAME = 'dataset.json';
