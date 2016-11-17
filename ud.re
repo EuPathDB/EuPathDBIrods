@@ -57,7 +57,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
-	  *content = "install\tnull\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ "\t" ++ *pairs.dependency_version ++ "\n";
+	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ "\t" ++ *pairs.dependency_version ++ "\n";
 	  acPostEvent(*content);
     }
 	else {
@@ -89,7 +89,7 @@ acPostEvent(*eventContent) {
 acDatasetPreprocForRmColl() {
 	msiSplitPath($collName, *parent, *datasetId);
 	acGetDatasetJsonContent($collName, *pairs);
-	*content = "uninstall\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
+	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
 	acPostEvent(*content)
 }
 
