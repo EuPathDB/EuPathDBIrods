@@ -8,13 +8,16 @@ acPostProcForPut {
 	if(*fileDir == "/ebrc/workspaces/lz" && *fileName like regex "dataset_u.*_t.*[.]tgz") then {
 		acLandingZonePostProcForPut(*fileDir, *fileName);
 	}
+#	else if(*fileDir like regex "/ebrc/workspaces/users/.*/deletedDatasets/*" && *fileName == 'dataset.json') then {
+#		acDatasetDeletionPostProcForPut(*fileDir);
+#	}
 }
 
 # Custom event hook for user dataset post processiong following an irm of a collection
-acPostProcForRmColl {
-    writeLine("serverLog", "PEP acPostProcForRmColl - $collName");
+acPreprocForRmColl {
+    writeLine("serverLog", "PEP acPreprocForRmColl - $collName");
 	if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
-	  acDatasetPostProcForRmColl();
+	  acDatasetPreprocForRmColl();
 	}
 }
 
@@ -77,7 +80,7 @@ acPostEvent(*eventContent) {
   msiGetIcatTime(*systemTime,"unix");
   *fileName = "event_*systemTime.txt";
   *eventPath = "/ebrc/workspaces/events/*fileName";
-  msiDataObjCreate(*eventPath,"destRescName=$rescName",*eventFileDescriptor);
+  msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
   msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
   msiDataObjClose(*eventFileDescriptor,*eventStatus);
   writeLine("serverLog", "Created event file *fileName");
@@ -109,6 +112,36 @@ acCreateEventContentForUnpack(*userDatasetPath, *datasetId, *content) {
 }
 
 # uninstall projects user_dataset_id ud_type_name ud_type_version
-acDatasetPostProcForRmColl() {
-	writeLine("serverLog", "Need to fire off an event");
+acDatasetPreprocForRmColl() {
+	msiSplitPath($collName, *parent, *datasetId);
+	acGetDatasetJsonContent($collName, *pairs);
+	*content = "uninstall\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
+	acPostEvent(*content)
+}
+
+# uninstall projects user_dataset_id ud_type_name ud_type_version
+acDatasetDeletionPostProcForPut(*fileDir) {
+	msiSplitPath($fileDir, *parent, *datasetId);
+	acGetDatasetJsonContent($fileDir, *pairs);
+	*content = "uninstall\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
+	acPostEvent(*content);
+}
+
+acGetDatasetJsonContent(*userDatasetPath, *content) {
+	*DatasetConfigPath = "*userDatasetPath/dataset.json";
+	*results = SELECT DATA_SIZE WHERE COLL_NAME = *userDatasetPath AND DATA_NAME = 'dataset.json';
+	*fileSize = 0;
+	foreach(*results) {
+	  *fileSize = *results.DATA_SIZE;
+	}
+	writeLine("serverLog", "File size: *fileSize");
+	writeLine("serverLog", "Dataset conf path is *DatasetConfigPath");
+	msiDataObjOpen("objPath=*DatasetConfigPath++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
+	msiDataObjRead(*fileDescriptor,*fileSize,*datasetData);
+	# Escapes the double quotes so that the content is transmitted as an intact single string.
+	*DatasetDataArg = execCmdArg(str(*datasetData));
+	msiDataObjClose(*fileDescriptor,*closeStatus);
+	msiExecCmd("datasetParser.py", *DatasetDataArg,"null","null","null",*Result);
+	msiGetStdoutInExecCmdOut(*Result,*Out);
+	msiString2KeyValPair(*Out, *content);
 }
