@@ -56,7 +56,8 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  writeLine("serverLog", "Removed $objPath tarball");
 	  
 	  # Fabricate an event.
-	  acCreateEventContentForUnpack(*userDatasetPath, $dataId, *content);
+	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
+	  *content = "install\tnull\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ "\t" ++ *pairs.dependency_version ++ "\n";
 	  acPostEvent(*content);
     }
 	else {
@@ -86,45 +87,14 @@ acPostEvent(*eventContent) {
   writeLine("serverLog", "Created event file *fileName");
 }	
 
-
-# Called once a dataset tarball is unpacked and placed in the owner's collection.  Reads the
-# accompanying dataset.json data object, calls a python script the parse the json into a more
-# digestable format and returns the data according to the following tab delimited format:
-# content: 'install' projects user_dataset_id ud_type_name ud_type_version owner_user_id dependency dependency_version
-acCreateEventContentForUnpack(*userDatasetPath, *datasetId, *content) {
-	*DatasetConfigPath = "*userDatasetPath/dataset.json";
-	*results = SELECT DATA_SIZE WHERE COLL_NAME = *userDatasetPath AND DATA_NAME = 'dataset.json';
-	*fileSize = 0;
-	foreach(*results) {
-		*fileSize = *results.DATA_SIZE;
-	}
-	writeLine("serverLog", "File size: *fileSize");
-	msiDataObjOpen("objPath=*DatasetConfigPath++++rescName=$rescName++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
-	msiDataObjRead(*fileDescriptor,*fileSize,*datasetData);
-	# Escapes the double quotes so that the content is transmitted as an intact single string.
-	*DatasetDataArg = execCmdArg(str(*datasetData));
-	msiDataObjClose(*fileDescriptor,*closeStatus);
-	msiExecCmd("datasetParser.py", *DatasetDataArg,"null","null","null",*Result);
-	msiGetStdoutInExecCmdOut(*Result,*Out);
-	msiString2KeyValPair(*Out, *pairs);
-	*content = "install\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ "\t" ++ *pairs.dependency_version ++ "\n";
-	writeLine("serverLog", *content);
-}
-
-# uninstall projects user_dataset_id ud_type_name ud_type_version
+# Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
+# an event data object.  The single line posted to the event object is composed as follows:
+# content:  uninstall projects user_dataset_id ud_type_name ud_type_version
 acDatasetPreprocForRmColl() {
 	msiSplitPath($collName, *parent, *datasetId);
 	acGetDatasetJsonContent($collName, *pairs);
 	*content = "uninstall\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
 	acPostEvent(*content)
-}
-
-# uninstall projects user_dataset_id ud_type_name ud_type_version
-acDatasetDeletionPostProcForPut(*fileDir) {
-	msiSplitPath($fileDir, *parent, *datasetId);
-	acGetDatasetJsonContent($fileDir, *pairs);
-	*content = "uninstall\tnull\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
-	acPostEvent(*content);
 }
 
 acGetDatasetJsonContent(*userDatasetPath, *content) {
