@@ -16,6 +16,9 @@ acPostProcForPut {
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
 		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "grant");
 	}
+	else if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
+		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "create")
+	}
 }
 
 # Custom event hook for determining what can be deleted 
@@ -30,6 +33,9 @@ acPostProcForDelete {
 	msiSplitPath($objPath, *fileDir, *fileName);
 	if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
 		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
+	}
+	else if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
+		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "delete")
 	}
 }
 
@@ -96,6 +102,19 @@ acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
   acGetDatasetJsonContent(*userDatasetPath, *pairs)
   *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
   acPostEvent(*content);
+}
+
+# externalDataset projects user_dataset_id ud_type_name ud_type_version user_id create/delete
+acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
+	*ownerId = trimr(*fileName,".");  # expected fileName in the form ownerId.externalDatasetId
+	*externalDatasetId = triml(*fileName,".");
+	writeLine("serverLog", "Owner id is *ownerId and External Dataset id is *externalDatasetId");
+	
+    # Fabricate an external dataset event.
+	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId"; 
+    acGetDatasetJsonContent(*ownerDatasetPath, *pairs)
+    *content = "externalDataset\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *action ++ "\n";
+    acPostEvent(*content);
 }
 
 
