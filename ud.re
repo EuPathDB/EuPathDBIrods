@@ -12,12 +12,28 @@ acPostProcForPut {
 	if(*fileDir == "/ebrc/workspaces/lz" && *fileName like regex "dataset_u.*_t.*[.]tgz") then {
 		acLandingZonePostProcForPut(*fileDir, *fileName);
 	}
-#	else if(*fileDir like regex "/ebrc/workspaces/users/.*/deletedDatasets/*" && *fileName == 'dataset.json') then {
-#		acDatasetDeletionPostProcForPut(*fileDir);
-#	}
+	# if a file is put into the sharedWith directory of a dataset, report it
+	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
+		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "grant");
+	}
 }
 
-# Custom event hook for user dataset post processiong following an irm of a collection
+# Custom event hook for determining what can be deleted 
+acDataDeletePolicy {
+	writeLine("serverLog", "PEP acDataDeletePolicy - $objPath");
+}
+
+# Custom event hook for user dataset post processing following the irm of a data object
+# Note that this event hook responds to irm -f only.  
+acPostProcForDelete {
+    writeLine("serverLog", "PEP acPostProcForDelete - $objPath");
+	msiSplitPath($objPath, *fileDir, *fileName);
+	if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
+		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
+	}
+}
+
+# Custom event hook for user dataset pre-processiong preceeding an irm of a collection
 acPreprocForRmColl {
     writeLine("serverLog", "PEP acPreprocForRmColl - $collName");
 	if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
@@ -31,7 +47,7 @@ acPostProcForCreate {
 
 # -------------------- Supporting Actions ----------------- #
 
-# This action is called by the acPostProcForPut action where a tgz file is deposited in
+# This action is called by the acPostProcForPut action whenever a tgz file is deposited in
 # the landing zone for user datasets.  It takes the collection name and the data object name
 # as inputs.  The data object name is expected in the form 'dataset_u\d+_t\d+.tgz'.
 # The _u\d+ portion defines the user id and the _t\d+ is a timestamp or some other
@@ -64,6 +80,22 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  # file name is mis-formatted, so toss.	
 	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
 	}
+}
+
+# This action is called by the acPostProcForPut action whenever a data object with a name corresponding to a share
+# recipient is put into a dataset's sharedWith collection or removed from it.  The action creates an event in the events
+# folder with the following tab-delimited data:
+# share projects user_dataset_id ud_type_name ud_type_version user_id grant or revoke
+acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
+  msiSplitPath(*fileDir, *userDatasetPath, *trash);
+  writeLine("serverLog", "User dataset is *userDatasetPath");
+  msiSplitPath(*userDatasetPath, *parent, *datasetId);
+  writeLine("serverLog", "Recipient is *recipientId and Dataset is *datasetId");
+  
+  # Fabricate a share event.
+  acGetDatasetJsonContent(*userDatasetPath, *pairs)
+  *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
+  acPostEvent(*content);
 }
 
 
