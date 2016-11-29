@@ -3,8 +3,14 @@
 import sys
 import subprocess
 
-# "wrkspuser,7c88562ca511b8bbbf18055c961f24a0,http://ies.irods.vm:8080/job/HelloWorld/build?token=thisisatest
-# http://ies.irods.vm:8080/job/HelloWorld/build?token=thisisatest"
+# Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of wgets using the
+# username and password provided via IRODS.  Each wget is called in turn.  Example argument for testing is
+# provided below (see sure to remove hashes and any spurious characters the editor may introduce)
+
+# "wrkspuser,7c88562ca511b8bbbf18055c961f24a0,http://ies.irods.vm:8080/job/SanityTest/build?token=sanitytest
+# http://ies.irods.vm:8080/job/HelloWorld/build?token=helloworldtest"
+
+# This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by wrkspuser.
 
 def main():
   args = sys.argv[1:]

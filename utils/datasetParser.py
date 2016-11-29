@@ -10,6 +10,7 @@ import json
 
 # '{ "type": {"name": "RNA Seq", "version": "1.0"},"dependencies": [{"resourceIdentifier": "pf3d7_genome_rsrc",  "resourceVersion": "12/2/2015", "resourceDisplayName": "pfal genome"},  {"resourceIdentifier": "hsap_genome_rsrc",    "resourceVersion": "2.6",   "resourceDisplayName": "human genome"} ],"projects":["PlasmoDB","FungiDB"],"owner": 12345,"size": "200M","modified": 1248312231083,"created": 1231238088881,"uploaded": 1231398508344}'
 
+# This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by wrkspuser.
 
 def main():
   args = sys.argv[1:]
