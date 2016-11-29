@@ -125,14 +125,15 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
 # python call to get the timestamp in milliseconds (could have been a shell call)
 acPostEvent(*eventContent) {
   msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
-  msiGetStdoutInExecCmdOut(*Result,*Out)
+  msiGetStdoutInExecCmdOut(*Result,*Out);
   *fileName = "event_*Out.txt";
   *eventPath = "/ebrc/workspaces/events/*fileName";
   msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
   msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
   msiDataObjClose(*eventFileDescriptor,*eventStatus);
   writeLine("serverLog", "Created event file *fileName");
-}	
+  acTriggerEvent();
+}
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
 # an event data object.  The single line posted to the event object is composed as follows:
@@ -168,4 +169,24 @@ acGetDatasetJsonContent(*userDatasetPath, *content) {
 	msiExecCmd("datasetParser.py", *DatasetDataArg,"null","null","null",*Result);
 	msiGetStdoutInExecCmdOut(*Result,*Out);
 	msiString2KeyValPair(*Out, *content);
+}
+
+acTriggerEvent() {
+	*jobFilePath = "/ebrc/workspaces";
+	*jobFileName = "jobFile.txt";
+	*results = SELECT DATA_SIZE WHERE COLL_NAME = *jobFilePath AND DATA_NAME = *jobFileName;
+	*fileSize = 0;
+	foreach(*results) {
+	  *fileSize = *results.DATA_SIZE;
+	}
+	writeLine("serverLog", "File size: *fileSize");
+	msiDataObjOpen("objPath=*jobFilePath/*jobFileName++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
+	msiDataObjRead(*fileDescriptor,*fileSize,*jobData);
+	*username = "wrkspaceuser";
+	*password = "b662ebf99bba99d7bf2c3961a0f9039d";
+	*argv = *username ++ "," ++ *password ++ "," ++ str(*jobData);
+	writeLine("serverLog", "Passing *argv");
+    msiExecCmd("executeJobFile.py",*argv,"null","null","null",*Result);
+    msiGetStdoutInExecCmdOut(*Result,*Out);
+	writeLine("serverLog", *Out);
 }
