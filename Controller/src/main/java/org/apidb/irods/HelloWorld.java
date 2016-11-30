@@ -11,6 +11,7 @@ package org.apidb.irods;
  */
 public class HelloWorld {
   public static void main(String[] args) {
-	System.out.println("Hello World");
+	String projectId = System.getenv("PROJECT_ID");
+	System.out.println("Hello " + projectId);
   }
 }

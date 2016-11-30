@@ -7,9 +7,9 @@ package org.apidb.irods;
 public class BuildEventsFile {
 	
   public static void main(String[] args) {
-    String model = "PlasmoDB";
+	String projectId = System.getenv("PROJECT_ID");
 	String gusHome = System.getenv("GUS_HOME");
-	String configPath = gusHome + "/config/" + model + "model-config.xml";
+	String configPath = gusHome + "/config/" + projectId + "model-config.xml";
 	 
 	 
   }
