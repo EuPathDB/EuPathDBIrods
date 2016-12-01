@@ -71,7 +71,7 @@
   <!-- oooooooooooooooooooooooooooo  Release  ooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
-  <target name="WDK-Release">
+  <target name="EuPathDBIrods-Release">
     
     <ant target="defaultProjectRelease">
       <property name="cvsroot" value=":ext:cvs.sanger.ac.uk:/cvsroot/GUS"/>
