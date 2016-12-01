@@ -19,7 +19,7 @@
       </dependency>
       <dependency>
         <groupId>org.gusdb</groupId>
-        <artifactId>wsf-client</artifactId>
+        <artifactId>fgputil-util</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
