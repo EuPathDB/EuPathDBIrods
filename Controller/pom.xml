@@ -22,7 +22,6 @@
    <dependency>
       <groupId>org.gusdb</groupId>
       <artifactId>wdk-model</artifactId>
-      <version>1.0.0</version>
     </dependency>
 
     <dependency>

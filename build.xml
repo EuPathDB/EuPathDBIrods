@@ -1,0 +1,95 @@
+<project name="EuPathDBIrods" basedir=".">
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo  Dependencies  oooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <import file="${projectsDir}/WDK/build.xml" />
+
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo    Checkout    oooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="WDK-ChildCheckout">
+    <available file="${projectsDir}/WDK" type="dir"  property="WDK.present" />
+    <antcall target="WDK-Checkout"/>
+  </target>
+
+  <target name="WDK-Checkout" unless="WDK.present">
+    <ant target="defaultProjectCheckout" inheritAll="false">
+      <property name="svnurl" value="https://www.cbil.upenn.edu/svn/gus/WDK"/>
+      <property name="project" value="WDK"/>
+      <property name="version" value="WDK_version_1-29"/>
+    </ant>
+  </target>
+
+    
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo    Update    oooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="EuPathDBIrods-ChildUpdate">
+    <ant target="defaultProjectUpdate">
+      <property name="project" value="WDK"/>
+    </ant>
+  </target>
+
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="EuPathDBIrods-Installation" depends="
+  	                                       EuPathDBIrods-MavenInstallation,
+  	                                       EuPathDBIrods/Controller-Installation">
+    <ant target="defaultProjectInstall">
+      <property name="project" value="EuPathDBIrods"/>
+    </ant>
+  </target>
+
+  <target name="EuPathDBIrods-MavenInstallation">
+    <ant target="mavenBuildProject">
+      <property name="project" value="EuPathDBIrods"/>
+    </ant>
+    <property name="alreadyBuilt" value="true"/>
+  </target>
+
+
+  <!-- ooooooooooooooooooooooo  Install Components  ooooooooooooooooooooooo -->
+
+  <target name="EuPathDBIrods/Controller-Installation">
+    <ant target="defaultComponentInstall">
+      <property name="project" value="EuPathDBIrods"/>
+      <property name="component" value="Controller"/>
+    </ant>
+  </target>  
+
+
+ 
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooo  Release  ooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="WDK-Release">
+    
+    <ant target="defaultProjectRelease">
+      <property name="cvsroot" value=":ext:cvs.sanger.ac.uk:/cvsroot/GUS"/>
+    </ant>
+  </target>  
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo  Distributable  ooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="EuPathDBIrods-Distributable">
+
+    <copy todir="${targetDir}">
+      <fileset dir="${projectsDir}" >
+        <exclude name="**/CVS/*" />
+      </fileset>
+    </copy>  
+  </target>  
+
+</project>
+
