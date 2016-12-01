@@ -41,8 +41,9 @@
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <target name="EuPathDBIrods-Installation" depends="
-  	                                       EuPathDBIrods-MavenInstallation,
-  	                                       EuPathDBIrods/Controller-Installation">
+                                           WDK-Installation,
+                                           EuPathDBIrods-MavenInstallation,
+                                           EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
       <property name="project" value="EuPathDBIrods"/>
     </ant>
