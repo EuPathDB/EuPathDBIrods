@@ -1,8 +1,6 @@
 package org.apidb.irods;
 
-
-
-
+import org.irods.jargon.core.pub.io.IRODSFile;
 
 public class BuildEventsFile {
 	

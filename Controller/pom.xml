@@ -43,7 +43,11 @@
       <groupId>xalan</groupId>
       <artifactId>serializer</artifactId>
     </dependency>
-
+    
+    <dependency>
+      <groupId>org.irods.jargon</groupId>
+      <artifactId>jargon-core</artifactId>
+    </dependency>
   
   </dependencies>
 
