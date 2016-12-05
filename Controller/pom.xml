@@ -4,12 +4,12 @@
 
   <parent>
     <groupId>org.gusdb</groupId>
-    <artifactId>EuPathDBIrods</artifactId>
+    <artifactId>eupath-irods</artifactId>
     <version>1.0.0</version>
   </parent>
 
   <name>EuPathDB IRODS Controller</name>
-  <artifactId>EuPathDBIrods-Controller</artifactId>
+  <artifactId>eupath-irods-controller</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>

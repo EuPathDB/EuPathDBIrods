@@ -3,7 +3,7 @@
 
   <name>EuPathDB IRODS</name>
   <url>http://gusdb.org</url>
-  <artifactId>EuPathDBIrods</artifactId>
+  <artifactId>eupath-irods</artifactId>
   <packaging>pom</packaging>
   
   <modules>
