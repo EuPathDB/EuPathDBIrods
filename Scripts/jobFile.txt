@@ -1,2 +1,2 @@
-http://ies.irods.vm:8080/job/SanityTest/build?token=sanitytest
+http://ies.irods.vm:8080/job/PlasmoDBIrods/build?token=eupathdbirods
 http://ies.irods.vm:8080/job/HelloWorld/build?token=helloworldtest
