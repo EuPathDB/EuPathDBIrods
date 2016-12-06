@@ -42,9 +42,9 @@
   <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
+	<!-- TODO add ApiCommonData-Installation on a richer vagrant -->
   <target name="EuPathDBIrods-Installation" depends="
                                            WDK-Installation,
-  	                                       ApiCommonData-Installation,
   	                                       ApiCommonShared-Installation,
   	                                       EuPathSiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
