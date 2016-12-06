@@ -5,7 +5,9 @@
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <import file="${projectsDir}/WDK/build.xml" />
-
+	<import file="${projectsDir}/EuPathSiteCommon/build.xml" />
+	<import file="${projectsDir}/ApiCommonShared/build.xml" />
+	<import file="${projectsDir}/ApiCommonData/build.xml" />
 
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooo    Checkout    oooooooooooooooooooooooooo -->
@@ -42,6 +44,9 @@
 
   <target name="EuPathDBIrods-Installation" depends="
                                            WDK-Installation,
+  	                                       ApiCommonData-Installation,
+  	                                       ApiCommonShared-Installation,
+  	                                       EuPathSiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
                                            EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
