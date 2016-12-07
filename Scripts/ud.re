@@ -183,7 +183,7 @@ acTriggerEvent() {
 	msiDataObjOpen("objPath=*jobFilePath/*jobFileName++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
 	msiDataObjRead(*fileDescriptor,*fileSize,*jobData);
 	*username = "wrkspuser";
-	*password = "7c88562ca511b8bbbf18055c961f24a0";
+	*password = "be4797e4b88200492d29cf0aeb32f5de";
 	*argv = *username ++ "," ++ *password ++ "," ++ str(*jobData);
 	writeLine("serverLog", "Passing *argv");
     msiExecCmd("executeJobFile.py",*argv,"null","null","null",*Result);

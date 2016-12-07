@@ -12,10 +12,8 @@ import org.gusdb.wdk.model.config.ModelConfig;
 import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
-import org.gusdb.wdk.model.user.dataset.filesys.FilesysUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.irods.IrodsUserDatasetStoreAdaptor;
 import org.gusdb.wdk.model.user.dataset.json.JsonUserDatasetStoreAdaptor;
-import org.irods.jargon.core.pub.io.IRODSFile;
 import org.xml.sax.SAXException;
 
 public class BuildEventsFile {
