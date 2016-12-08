@@ -46,7 +46,7 @@ public class BuildEventsFile {
 	}
 	StringBuilder events = new StringBuilder();
 	for(Path eventFile : eventFiles) {
-	  String timestamp = eventFile.toString().split("_")[1];
+	  String timestamp = eventFile.toString().split("_")[1].split(".")[0];
 	  String event = udsa.readFileContents(eventFile);
 	  events.append(timestamp + "\t" + event + System.getProperty("line.separator"));
 	}
