@@ -21,6 +21,7 @@ public class BuildEventsFile {
 	
   public static void main(String[] args) throws Exception {
 	String projectId = System.getenv("PROJECT_ID");
+	System.out.println("Project: " + projectId);
 	String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);     
     ModelConfigParser parser = new ModelConfigParser(gusHome);
     ModelConfig modelConfig = null;

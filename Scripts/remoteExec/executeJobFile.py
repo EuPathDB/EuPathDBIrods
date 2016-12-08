@@ -2,13 +2,13 @@
 
 import sys
 import subprocess
+from urlparse import urlparse
 
 # Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of wgets using the
 # username and password provided via IRODS.  Each wget is called in turn.  Example argument for testing is
 # provided below (see sure to remove hashes and any spurious characters the editor may introduce)
 
-# "wrkspuser,7c88562ca511b8bbbf18055c961f24a0,http://ies.irods.vm:8080/job/SanityTest/build?token=sanitytest
-# http://ies.irods.vm:8080/job/HelloWorld/build?token=helloworldtest"
+# "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters?token=eupathdbirods,PlasmoDB"
 
 # This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by wrkspuser.
 
@@ -19,10 +19,20 @@ def main():
   params = "".join(args).split(",")
   username = params[0]
   password = params[1]
-  jobData = params[2].split("\n")
+  jobUrl = params[2]
+  jenkinsHost = urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
+  jobParams = params[3].split("\n")
   preamble = "wget --quiet --auth-no-challenge --http-user=" + username + " --http-password=" + password + " "
-  for url in jobData:
-    cmd = preamble + url + "\n"
+  crumbRequest = preamble + "--output-document - '" + jenkinsHost + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'"
+  #sys.stdout.write(crumbRequest)
+  requestCrumb = subprocess.Popen(crumbRequest, shell=True, stdout=subprocess.PIPE)
+  requestCrumb.wait()
+  crumb = str(requestCrumb.communicate()[0])
+  sys.stdout.write(crumb)
+  header = "--header='" + crumb + "'"
+  for jobParam in jobParams:
+    sys.stdout.write(header + "\n")
+    cmd = preamble + " " + header + "--post-data=\"PROJECT_ID=" + jobParam + "\" " + jobUrl + "\n"
     sys.stdout.write(cmd)
     result = subprocess.check_call(cmd, shell=True)
     sys.stdout.write("Result:" + str(result) + "\n")
