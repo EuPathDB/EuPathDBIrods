@@ -3,6 +3,7 @@
 import sys
 import subprocess
 from urlparse import urlparse
+import time
 
 # Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of wgets using the
 # username and password provided via IRODS.  Each wget is called in turn.  Example argument for testing is
@@ -22,20 +23,22 @@ def main():
   jobUrl = params[2]
   jenkinsHost = urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
   jobParams = params[3].split("\n")
-  preamble = "wget --quiet --auth-no-challenge --http-user=" + username + " --http-password=" + password + " "
+  preamble = "wget  --quiet --auth-no-challenge --http-user=" + username + " --http-password=" + password + " "
   crumbRequest = preamble + "--output-document - '" + jenkinsHost + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'"
   #sys.stdout.write(crumbRequest)
   requestCrumb = subprocess.Popen(crumbRequest, shell=True, stdout=subprocess.PIPE)
   requestCrumb.wait()
   crumb = str(requestCrumb.communicate()[0])
-  sys.stdout.write(crumb)
   header = "--header='" + crumb + "'"
   for jobParam in jobParams:
-    sys.stdout.write(header + "\n")
-    cmd = preamble + " " + header + "--post-data=\"PROJECT_ID=" + jobParam + "\" " + jobUrl + "\n"
-    sys.stdout.write(cmd)
-    result = subprocess.check_call(cmd, shell=True)
-    sys.stdout.write("Result:" + str(result) + "\n")
+    if len(jobParam) > 0:
+      time.sleep(30)
+      cmd = preamble + " " + header + "--post-data=\"PROJECT_ID=" + jobParam + "\" " + jobUrl + "\n"
+      sys.stdout.write(cmd)
+      requestEvents = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+      requestEvents.wait()
+      result = str(requestEvents.communicate())
+      #sys.stdout.write("Result:" + result + "\n")
   sys.stdout.write("Complete")
   
 if __name__ == "__main__":

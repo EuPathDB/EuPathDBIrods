@@ -1,3 +1,2 @@
-wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters?token=eupathdbirods
-PlasmoDB
+wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters?token=eupathdbirods,PlasmoDB
 CryptoDB
