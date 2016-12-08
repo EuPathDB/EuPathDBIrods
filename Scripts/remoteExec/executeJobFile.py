@@ -1,45 +1,46 @@
 #!/usr/bin/env python
 
+import requests
 import sys
-import subprocess
 from urlparse import urlparse
-import time
 
-# Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of wgets using the
-# username and password provided via IRODS.  Each wget is called in turn.  Example argument for testing is
-# provided below (see sure to remove hashes and any spurious characters the editor may introduce)
+# Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of http requests.
+# Initial request is a get method to retrieve a crumb to be put in all subsequent request headers to avoid CSRF
+# Each post request is called in turn.  An example parameter list is provided below
+# (see sure to remove hashes and any spurious characters the editor may introduce)
+# Done with the generous assistance of Mark Heiges
 
-# "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters?token=eupathdbirods,PlasmoDB"
+# Example parameter list
+# "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters,eupathdbirods
+# PlasmoDB
+# CryptoDB"
 
-# This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by wrkspuser.
+# This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by irods.
 
 def main():
   args = sys.argv[1:]
   if len(args) != 1:
     raise IOError("Expected a single string argument containing job file path, username, and password separated with commas.")
-  params = "".join(args).split(",")
-  username = params[0]
-  password = params[1]
-  jobUrl = params[2]
-  jenkinsHost = urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
-  jobParams = params[3].split("\n")
-  preamble = "wget  --quiet --auth-no-challenge --http-user=" + username + " --http-password=" + password + " "
-  crumbRequest = preamble + "--output-document - '" + jenkinsHost + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'"
-  #sys.stdout.write(crumbRequest)
-  requestCrumb = subprocess.Popen(crumbRequest, shell=True, stdout=subprocess.PIPE)
-  requestCrumb.wait()
-  crumb = str(requestCrumb.communicate()[0])
-  header = "--header='" + crumb + "'"
+  params = "".join(args).split("\n")
+  props = params[0].split(",")
+  username = props[0]
+  password = props[1]
+  jobUrl = props[2]
+  token = props[3]
+  host = urlparse(jobUrl).scheme + "://" + urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
+  jobParams = params[1:]
+  crumbUrl = host + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
+  response = requests.get(crumbUrl, auth=(username, password))
+  sys.stdout.write("Crumb retrieval Status Code: " + str(response.status_code) + "\n")
+  crumbValue = response.text.split(":")[1]
+  headers = {"Jenkins-Crumb":crumbValue}
   for jobParam in jobParams:
     if len(jobParam) > 0:
-      time.sleep(30)
-      cmd = preamble + " " + header + "--post-data=\"PROJECT_ID=" + jobParam + "\" " + jobUrl + "\n"
-      sys.stdout.write(cmd)
-      requestEvents = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
-      requestEvents.wait()
-      result = str(requestEvents.communicate())
-      #sys.stdout.write("Result:" + result + "\n")
-  sys.stdout.write("Complete")
+      sys.stdout.write("Job Param: " + jobParam)
+      params = {"PROJECT_ID": jobParam, "token": token}
+      response = requests.post(jobUrl, auth=(username, password), headers=headers, data=params)
+      sys.stdout.write(" - Status Code: " + str(response.status_code) + "\n")
+  sys.stdout.write("Complete\n")
   
 if __name__ == "__main__":
     sys.exit(main())  
