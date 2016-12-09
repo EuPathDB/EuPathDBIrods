@@ -12,8 +12,7 @@ import org.gusdb.wdk.model.config.ModelConfig;
 import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
-import org.gusdb.wdk.model.user.dataset.irods.IrodsUserDatasetStoreAdaptor;
-import org.gusdb.wdk.model.user.dataset.json.JsonUserDatasetStoreAdaptor;
+import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
 import org.xml.sax.SAXException;
 
 public class BuildEventsFile {
@@ -35,7 +34,7 @@ public class BuildEventsFile {
 	ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
     //TODO use userdatasetstore.getadaptor when available.
-	JsonUserDatasetStoreAdaptor udsa = new IrodsUserDatasetStoreAdaptor();
+	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	List<Path> eventFiles = new ArrayList<>();
 	try {
 	  eventFiles = udsa.getPathsInDir(Paths.get(EVENTS_DIR));
