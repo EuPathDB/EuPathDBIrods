@@ -1,8 +1,6 @@
 package org.apidb.irods;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -15,6 +13,7 @@ import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
+import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventListHandler;
 import org.xml.sax.SAXException;
 
 public class BuildEventsFile {
@@ -45,21 +44,18 @@ public class BuildEventsFile {
 	  throw new RuntimeException(e);
 	}
 	StringBuilder events = new StringBuilder();
+	List<String> eventList = new ArrayList<>();
 	for(Path eventFile : eventFiles) {
 	  String eventFilename = eventFile.getFileName().toString();
 	  String timestamp = eventFilename.substring(eventFilename.indexOf('_') + 1, eventFilename.indexOf('.'));
 	  String event = udsa.readFileContents(eventFile);
 	  events.append(timestamp + "\t" + event + System.getProperty("line.separator"));
+	  eventList.add(timestamp + "\t" + event);
 	} 
 	System.out.println(events.toString());
-	String wdkTempDir = modelConfig.getWdkTempDir();
-	Path eventsFile =  Paths.get(wdkTempDir + File.separator + "eventsFile");
-	try {
-	  Files.write(eventsFile, events.toString().getBytes());
-    }
-    catch (IOException e) {
-      throw new WdkModelException(e);
-    }
+	String cmdName = System.getProperty("cmdName");
+	UserDatasetEventListHandler handler = new UserDatasetEventListHandler(cmdName);
+	handler.parseEventsList(eventList);
   }
 
 }

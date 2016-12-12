@@ -79,7 +79,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
-	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ "\t" ++ *pairs.dependency_version ++ "\n";
+	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	  acPostEvent(*content);
     }
 	else {
@@ -182,9 +182,6 @@ acTriggerEvent() {
 	writeLine("serverLog", "File size: *fileSize");
 	msiDataObjOpen("objPath=*jobFilePath/*jobFileName++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
 	msiDataObjRead(*fileDescriptor,*fileSize,*jobData);
-#	*username = "wrkspuser";
-#	*password = "be4797e4b88200492d29cf0aeb32f5de";
-#	*argv = *username ++ "," ++ *password ++ "," ++ str(*jobData);
     *argv = str(*jobData);
 	writeLine("serverLog", "Passing *argv");
     msiExecCmd("executeJobFile.py",*argv,"null","null","null",*Result);
