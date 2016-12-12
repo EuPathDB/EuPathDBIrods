@@ -53,7 +53,7 @@ public class BuildEventsFile {
 	} 
 	System.out.println(events.toString());
 	String wdkTempDir = modelConfig.getWdkTempDir();
-	Path eventsFile =  Paths.get(wdkTempDir + File.pathSeparator + "eventsFile");
+	Path eventsFile =  Paths.get(wdkTempDir + File.separator + "eventsFile");
 	try {
 	  Files.write(eventsFile, events.toString().getBytes());
     }
