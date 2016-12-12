@@ -1,6 +1,8 @@
 package org.apidb.irods;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,13 +29,12 @@ public class BuildEventsFile {
 	try {
 	  modelConfig = parser.parseConfig(projectId);
 	} 
-	catch (WdkModelException | SAXException | IOException e) {
+	catch(WdkModelException | SAXException | IOException e) {
 	  e.printStackTrace();
 	  throw new RuntimeException(e);
 	}
 	ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
-    //TODO use userdatasetstore.getadaptor when available.
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	List<Path> eventFiles = new ArrayList<>();
 	try {
@@ -45,13 +46,20 @@ public class BuildEventsFile {
 	}
 	StringBuilder events = new StringBuilder();
 	for(Path eventFile : eventFiles) {
-	
 	  String eventFilename = eventFile.getFileName().toString();
 	  String timestamp = eventFilename.substring(eventFilename.indexOf('_') + 1, eventFilename.indexOf('.'));
 	  String event = udsa.readFileContents(eventFile);
 	  events.append(timestamp + "\t" + event + System.getProperty("line.separator"));
-	}
+	} 
 	System.out.println(events.toString());
+	String wdkTempDir = modelConfig.getWdkTempDir();
+	Path eventsFile =  Paths.get(wdkTempDir + File.pathSeparator + "eventsFile");
+	try {
+	  Files.write(eventsFile, events.toString().getBytes());
+    }
+    catch (IOException e) {
+      throw new WdkModelException(e);
+    }
   }
 
 }
