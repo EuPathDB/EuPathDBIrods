@@ -46,6 +46,7 @@
   <target name="EuPathDBIrods-Installation" depends="
                                            WDK-Installation,
   	                                       ApiCommonShared-Installation,
+  	                                       ApiCommonData-Installation,
   	                                       EuPathSiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
                                            EuPathDBIrods/Controller-Installation">
