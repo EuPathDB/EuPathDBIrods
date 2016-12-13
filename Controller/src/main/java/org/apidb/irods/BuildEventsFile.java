@@ -63,6 +63,7 @@ public class BuildEventsFile {
 	String cmdName = System.getProperty("cmdName");
 	UserDatasetEventListHandler handler = new UserDatasetEventListHandler(cmdName);
 	handler.parseEventsList(eventList);
+	logger.debug("Handler call complete");
   }
 
 }
