@@ -27,7 +27,7 @@ public class BuildEventsFile {
 	
   public static void main(String[] args) throws Exception {
 	String projectId = System.getenv("PROJECT_ID");
-	logger.debug("Project: " + projectId);
+	logger.info("Project: " + projectId);
 	System.out.println("Project: " + projectId);
 	String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);     
     ModelConfigParser parser = new ModelConfigParser(gusHome);
@@ -63,7 +63,9 @@ public class BuildEventsFile {
 	String cmdName = System.getProperty("cmdName");
 	UserDatasetEventListHandler handler = new UserDatasetEventListHandler(cmdName);
 	handler.parseEventsList(eventList);
-	logger.debug("Handler call complete");
+	handler.setProjectId(projectId);
+	Path tmpDir =  Paths.get(handler.getWdkTempDirName());
+    handler.handleEventList(handler.parseEventsList(eventList), modelConfig.getUserDatasetStoreConfig().getTypeHandlers(), tmpDir);
   }
 
 }
