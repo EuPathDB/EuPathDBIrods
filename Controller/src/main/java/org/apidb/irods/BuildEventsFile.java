@@ -19,7 +19,16 @@ import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventListHandler;
 import org.xml.sax.SAXException;
 
 
-
+/**
+ * This is a small Java application that should be called by Jenkins whenever an IRODS event of note takes
+ * place and also periodically, given the possibility that a prior event was not captured.  It reads the
+ * contents of each file in the entire IRODS events folder, and consolidates them into a single list of events
+ * that is passed on to the WDK's user dataset events handler to processing according to the nature of each
+ * event. Although this file addresses event handling is intended for IRODS, it has no specific references
+ * to IRODS.  It could be used with a POSIX system as well.
+ * @author crisl-adm
+ *
+ */
 public class BuildEventsFile {
 
   private static final Logger logger = Logger.getLogger(BuildEventsFile.class);	
@@ -28,7 +37,6 @@ public class BuildEventsFile {
   public static void main(String[] args) throws Exception {
 	String projectId = System.getenv("PROJECT_ID");
 	logger.info("Project: " + projectId);
-	System.out.println("Project: " + projectId);
 	String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);     
     ModelConfigParser parser = new ModelConfigParser(gusHome);
     ModelConfig modelConfig = null;

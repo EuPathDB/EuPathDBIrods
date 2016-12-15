@@ -69,16 +69,16 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	  msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UnpkStatus):::msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
 	  writeLine("serverLog", "Unpacked $objPath successfully");
 	  
-	  *installDataObj = "*userDatasetPath/.install"; 
-	  msiDataObjCreate(*installDataObj,"destRescName=$rescName",*installFileDescriptor);
-	  msiDataObjClose(*installFileDescriptor,*installStatus);
-	  
 	  # Remove the tarball following unpacking.
 	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
 	  writeLine("serverLog", "Removed $objPath tarball");
 	  
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
+	  
+	  # Add the uploaded timestamp to the dataset.json data object belonging to the newly added dataset
+	  acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
+	  
 	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	  acPostEvent(*content);
     }
@@ -132,7 +132,7 @@ acPostEvent(*eventContent) {
   msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
   msiDataObjClose(*eventFileDescriptor,*eventStatus);
   writeLine("serverLog", "Created event file *fileName");
-  acTriggerEvent();
+#  acTriggerEvent();
 }
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
@@ -169,6 +169,14 @@ acGetDatasetJsonContent(*userDatasetPath, *content) {
 	msiExecCmd("datasetParser.py", *DatasetDataArg,"null","null","null",*Result);
 	msiGetStdoutInExecCmdOut(*Result,*Out);
 	msiString2KeyValPair(*Out, *content);
+}
+
+acOverwriteDatasetJsonContent(*userDatasetPath, *content) {
+  writeLine("serverLog", "Need to overwrite dataset.json with *content");
+  *DatasetConfigPath = "*userDatasetPath/dataset.json";
+  msiDataObjOpen("objPath=*DatasetConfigPath++++replNum=0++++openFlags=O_RDWRO_TRUNC", *fileDescriptor);
+  msiDataObjWrite(*fileDescriptor,*content,*fileSize);
+  msiDataObjClose(*fileDescriptor,*fileStatus);
 }
 
 acTriggerEvent() {
