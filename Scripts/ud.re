@@ -132,7 +132,7 @@ acPostEvent(*eventContent) {
   msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
   msiDataObjClose(*eventFileDescriptor,*eventStatus);
   writeLine("serverLog", "Created event file *fileName");
-#  acTriggerEvent();
+  acTriggerEvent();
 }
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
