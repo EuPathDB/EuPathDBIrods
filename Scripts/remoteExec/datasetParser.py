@@ -22,7 +22,7 @@ def main():
 
   # If this function is called for a dataset.json object that has no uploaded timestamp, we provide one
   if 'uploaded' not in parsedJson:
-    parsedJson['uploaded'] = int(time.time())
+    parsedJson['uploaded'] = int(time.time()*1000)
 
   type = parsedJson['type']
   dependencies = parsedJson['dependencies']
