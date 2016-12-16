@@ -7,27 +7,6 @@
   <scm class="hudson.scm.SubversionSCM" plugin="subversion@2.7.1">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk</remote>
-        <credentialsId></credentialsId>
-        <local>project_home/EuPathDBIrods</local>
-        <depthOption>infinity</depthOption>
-        <ignoreExternalsOption>true</ignoreExternalsOption>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/gus/WDK/trunk</remote>
-        <credentialsId></credentialsId>
-        <local>project_home/WDK</local>
-        <depthOption>infinity</depthOption>
-        <ignoreExternalsOption>true</ignoreExternalsOption>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/gus/FgpUtil/trunk</remote>
-        <credentialsId></credentialsId>
-        <local>project_home/FgpUtil</local>
-        <depthOption>infinity</depthOption>
-        <ignoreExternalsOption>false</ignoreExternalsOption>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>https://www.cbil.upenn.edu/svn/gus/install/trunk</remote>
         <credentialsId></credentialsId>
         <local>project_home/install</local>
@@ -125,6 +104,27 @@
         <depthOption>infinity</depthOption>
         <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://www.cbil.upenn.edu/svn/gus/WDK/trunk</remote>
+        <credentialsId></credentialsId>
+        <local>project_home/WDK</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://www.cbil.upenn.edu/svn/gus/FgpUtil/trunk</remote>
+        <credentialsId></credentialsId>
+        <local>project_home/FgpUtil</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk</remote>
+        <credentialsId></credentialsId>
+        <local>project_home/EuPathDBIrods</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -144,25 +144,36 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>export BASE_GUS=$WORKSPACE
+      <command>#Note that this build cannot put IRODS dependencies in place.  That should be handled first.
+
+export BASE_GUS=$WORKSPACE
 
 mkdir -p gus_home
 
 source $BASE_GUS/setenv
-# Something else should be making the project dirs!!!
-mkdir -p $GUS_HOME/config/PlasmoDB;
-mkdir -p $GUS_HOME/config/CryptoDB;
+
 mkdir -p $GUS_HOME/lib/java/db_driver;
 
-cp $PROJECT_HOME/install/gus.config.sample $GUS_HOME/config/gus.config
 cp $ORACLE_HOME/jdbc/lib/ojdbc6.jar $GUS_HOME/lib/java/db_driver/
 
+# ApiCommonData build, upon which EuPathDBIrods depends, requires this file.  Using
+# a plasmodb version - will anything db instance do?
+mkdir -p $GUS_HOME/config
+cp $BASE_GUS/plasmo.gus.config $GUS_HOME/config/gus.config
+
+# Contains all the project dependencies
 bld EuPathDBIrods
 
 # There will be multiple calls here - a different yaml for each project
+# Directory named after project made user $GUS_HOME/config when eupathSiteConfigure is run.
 eupathSiteConfigure -model PlasmoDB -filename $BASE_GUS/plasmoDBMetaConfigure.yaml
-eupathSiteConfigure -model CryptoDB -filename $BASE_GUS/cryptoDBMetaConfigure.yaml
-</command>
+eupathSiteConfigure -model ToxoDB -filename $BASE_GUS/toxoDBMetaConfigure.yaml
+
+# Needed for ApiCommonData build upon which EuPathDBIrods depends
+# Note that these steps follow the eupathSiteConfigure cmd because they require the dir
+# that eupathSiteConfigure creates.
+cp $BASE_GUS/plasmo.gus.config $GUS_HOME/config/PlasmoDB/gus.config
+cp $BASE_GUS/toxo.gus.config $GUS_HOME/config/ToxoDB/gus.config</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>

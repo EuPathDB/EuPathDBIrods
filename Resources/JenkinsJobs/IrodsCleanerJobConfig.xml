@@ -3,31 +3,23 @@
   <actions/>
   <description></description>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.model.ParametersDefinitionProperty>
-      <parameterDefinitions>
-        <hudson.model.StringParameterDefinition>
-          <name>PROJECT_ID</name>
-          <description></description>
-          <defaultValue>PlasmoDB</defaultValue>
-        </hudson.model.StringParameterDefinition>
-      </parameterDefinitions>
-    </hudson.model.ParametersDefinitionProperty>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.NullSCM"/>
   <assignedNode>irods</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <authToken>eupathdbirods</authToken>
   <triggers/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>source $WORKSPACE/setenv
-fgpJava org.apidb.irods.BuildEventsFile
-</command>
+      <command># The project folders to clean are actually in the IrodsBuilder workspace.  This
+# setenv handles that.
+source $WORKSPACE/setenv
+
+rm -rf $PROJECT_HOME/*
+rm -rf $GUS_HOME</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>
