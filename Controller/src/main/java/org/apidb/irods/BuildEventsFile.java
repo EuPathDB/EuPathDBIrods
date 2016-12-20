@@ -36,7 +36,8 @@ public class BuildEventsFile {
 	
   public static void main(String[] args) throws Exception {
 	String projectId = System.getenv("PROJECT_ID");
-	logger.info("Project: " + projectId);
+	String datasetStoreId = System.getenv("DATASET_STORE_ID");
+	logger.info("Parameters - Project: " + projectId + ", Dataset Store: " + datasetStoreId);
 	String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);     
     ModelConfigParser parser = new ModelConfigParser(gusHome);
     ModelConfig modelConfig = null;
@@ -49,6 +50,9 @@ public class BuildEventsFile {
 	}
 	ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
+    if(!uds.getUserDatasetStoreId().equals(datasetStoreId)) {
+      throw new RuntimeException("Called by wrong IRODS " + datasetStoreId);
+    }
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	List<Path> eventFiles = new ArrayList<>();
 	try {

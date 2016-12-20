@@ -181,7 +181,7 @@ acOverwriteDatasetJsonContent(*userDatasetPath, *content) {
 
 acTriggerEvent() {
 	*jobFilePath = "/ebrc/workspaces";
-	*jobFileName = "jobFile.txt";
+	*jobFileName = "jenkinsCommunicationConfig.txt";
 	*results = SELECT DATA_SIZE WHERE COLL_NAME = *jobFilePath AND DATA_NAME = *jobFileName;
 	*fileSize = 0;
 	foreach(*results) {

@@ -105,13 +105,6 @@
         <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/gus/WDK/trunk</remote>
-        <credentialsId></credentialsId>
-        <local>project_home/WDK</local>
-        <depthOption>infinity</depthOption>
-        <ignoreExternalsOption>false</ignoreExternalsOption>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>https://www.cbil.upenn.edu/svn/gus/FgpUtil/trunk</remote>
         <credentialsId></credentialsId>
         <local>project_home/FgpUtil</local>
@@ -119,7 +112,14 @@
         <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk</remote>
+        <remote>https://www.cbil.upenn.edu/svn/gus/WDK/trunk</remote>
+        <credentialsId></credentialsId>
+        <local>project_home/WDK</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods</remote>
         <credentialsId></credentialsId>
         <local>project_home/EuPathDBIrods</local>
         <depthOption>infinity</depthOption>
@@ -166,14 +166,17 @@ bld EuPathDBIrods
 
 # There will be multiple calls here - a different yaml for each project
 # Directory named after project made user $GUS_HOME/config when eupathSiteConfigure is run.
-eupathSiteConfigure -model PlasmoDB -filename $BASE_GUS/plasmoDBMetaConfigure.yaml
-eupathSiteConfigure -model ToxoDB -filename $BASE_GUS/toxoDBMetaConfigure.yaml
+apiTnsSummary | grep -v amaz-rbld | grep -v pris-rbld | eupathCloneMetaFile $BASE_GUS/PlasmoDBMetaConfig.yaml 
+eupathSiteConfigure -model PlasmoDB -filename $BASE_GUS/PlasmoDBMetaConfig.yaml
+eupathSiteConfigure -model ToxoDB -filename $BASE_GUS/ToxoDBMetaConfig.yaml
 
 # Needed for ApiCommonData build upon which EuPathDBIrods depends
 # Note that these steps follow the eupathSiteConfigure cmd because they require the dir
 # that eupathSiteConfigure creates.
 cp $BASE_GUS/plasmo.gus.config $GUS_HOME/config/PlasmoDB/gus.config
-cp $BASE_GUS/toxo.gus.config $GUS_HOME/config/ToxoDB/gus.config</command>
+cp $BASE_GUS/toxo.gus.config $GUS_HOME/config/ToxoDB/gus.config
+
+fgpJava org.apidb.irods.BuildJenkinsCommunicationFile -u wrkspuser -p &quot;be4797e4b88200492d29cf0aeb32f5de&quot; -j http://wij.vm:9171/job/IrodsListener/buildWithParameters -t eupathdbirods -l &quot;PlasmoDB,ToxoDB&quot;</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>

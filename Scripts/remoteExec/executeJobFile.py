@@ -11,7 +11,7 @@ from urlparse import urlparse
 # Done with the generous assistance of Mark Heiges
 
 # Example parameter list
-# "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters,eupathdbirods
+# "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/buildWithParameters,eupathdbirods,otherstuff
 # PlasmoDB
 # CryptoDB"
 
@@ -27,6 +27,7 @@ def main():
   password = props[1]
   jobUrl = props[2]
   token = props[3]
+  datasetStoreId = props[4]
   host = urlparse(jobUrl).scheme + "://" + urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
   jobParams = params[1:]
   crumbUrl = host + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
@@ -37,7 +38,7 @@ def main():
   for jobParam in jobParams:
     if len(jobParam) > 0:
       sys.stdout.write("Job Param: " + jobParam)
-      params = {"PROJECT_ID": jobParam, "token": token}
+      params = {"PROJECT_ID": jobParam, "DATASET_STORE_ID": datasetStoreId, "token": token}
       response = requests.post(jobUrl, auth=(username, password), headers=headers, data=params)
       sys.stdout.write(" - Status Code: " + str(response.status_code) + "\n")
   sys.stdout.write("Complete\n")

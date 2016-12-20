@@ -11,19 +11,6 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Create Configuration Files
   * Outside of vagrant, in its associated scratch directory, create a  [project]MetaConfigure.yaml file for each project to be supported by this system.  It is assumed that plamsoDB will be one of them.  Remember that the userDatasetStore should be correctly populated with the information needed to access the irods system that will be calling the Jenkins job.
   * Create, in the same directory, a [project]gus.config file fo each project to be supported by this system.  Again it is assumed that plasmoDB will be one of them.
-  * Create, in the same directory, a jobFile.txt that will contain on the first line:
-<code>
-  Jenkins user name [tab] Jenkins user password [tab] Jenkins IrodsListener job url [tab] IrodsListener job token
-</code>
-
-  * On subsequent lines, the projects supported by this system should be added:
-  
-<code>
-	PlasmoDB
-	ToxoDB
-	[etc...]
-</code>
-
   * In scratch, create a project_home directory.
   * In the project_home dir, checkout from svn, the EuPathDBIrods project (<code>svn checkoiut https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk project_home/EuPathDBIrods</code>). 
   * The files located in this scratch directory are available within vagrant.  A number of these files will be needed later.
