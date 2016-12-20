@@ -119,7 +119,7 @@
         <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods</remote>
+        <remote>https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk</remote>
         <credentialsId></credentialsId>
         <local>project_home/EuPathDBIrods</local>
         <depthOption>infinity</depthOption>
