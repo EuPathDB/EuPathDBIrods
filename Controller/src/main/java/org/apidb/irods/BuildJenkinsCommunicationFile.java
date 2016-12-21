@@ -1,6 +1,9 @@
 package org.apidb.irods;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.commons.cli.CommandLine;
@@ -18,11 +21,18 @@ import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
 import org.xml.sax.SAXException;
 
+/**
+ * This is a small application intended to be run at the end of a Jenkins IRODS build.  It creates
+ * a jenkinsCommunicationConfig.txt file and stuffs it into IRODS at /ebrc/workspaces.  The file
+ * provides the information needed by IRODS to communicate events back to the Jenkins IRODSListener
+ * job.  This can also be used on the command line as the needed parameters are passed in.
+ * @author crisl-adm
+ *
+ */
 public class BuildJenkinsCommunicationFile {
 
   @SuppressWarnings("unused")
   private static final Logger logger = Logger.getLogger(BuildJenkinsCommunicationFile.class);
-  private static final String TOP_LEVEL_DIR = "/ebrc/workspaces";
   private static final String JENKINS_COMMUNICATION_FILE = "jenkinsCommunicationConfig.txt";
   private static final String NL = System.lineSeparator();
 
@@ -84,6 +94,12 @@ public class BuildJenkinsCommunicationFile {
 	  contents.append(project + NL);
 	}
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
-	udsa.writeFile(Paths.get(TOP_LEVEL_DIR, JENKINS_COMMUNICATION_FILE), contents.toString(), false);
+	// In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
+	// guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
+	// root directory applies to the users directory, but the jenkins communication file is sibling to that
+	// directory.  Hence we use a relative address.
+	String userDatasetRootDir = userDatasetStoreId.split("\\|")[0];
+	String topLevelFilePath = userDatasetRootDir + File.separator + "..";
+	udsa.writeFile(Paths.get(topLevelFilePath, JENKINS_COMMUNICATION_FILE), contents.toString(), false);
   }
 }

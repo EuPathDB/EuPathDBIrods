@@ -57,7 +57,7 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Load Jenkins Jobs
   * Become the Jenkins user (note Jenkins does not have a login shell <code>sudo su -s /bin/bash jenkins</code>).
   * Go to the Jenkins jobs directory (<code>cp /usr/local/home/jenkins/Instances/WS/jobs</code>).
-  * Set up job directories for each job (<code>mkdir IrodsBuilder IrodsCleaner IrodsListener</code>).
+  * Set up job directories for each job (<code>mkdir IrodsBuilder IrodsListener</code>).
   * Add each of the three build configurations to its respective folder as config.xml.  They are found in the EuPathDBIrods project (e.g., <code>cp /vagrant/scratchEuPathDBIrods/Configurations/JenkinsJobs/IrodsBuilder.xml config.xml</code>).
   * Log off as jenkins (<code>exit</code>).
   * On the Jenkins website (as admin), go to <code>Manage Jenkins -> Reload Configuration from Disk</code>
@@ -68,29 +68,20 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   
 ### Allow DB Connections Through Firewall
   * Run sshuttle (<code>sshuttle -e 'ssh -o StrictHostKeyChecking=no' -r [user]@spruce.pcbi.upenn.edu 128.91.49.128/24 128.192.0.0/16 > /dev/null 2>&1 &</code>).
-  * Insure that a process number is returned.  Remeber to do this initially after vagrant up/vagrant ssh or builds will not work.
+  * Insure that a process number is returned.  Remember to do this initially after vagrant up/vagrant ssh or builds will not work.
   
 ### Verify Jobs
-  * For each of the jobs, IrodsBuilder, IrodsCleaner, IrodsListener, verify that each is restricted to run on the irods node and set it if otherwise.
+  * For each of the jobs, IrodsBuilder and IrodsListener, verify that each is restricted to run on the irods node and set it if otherwise.
   
 ### Set Up Irods Builder Jenkins Job
   * Run the IrodsBuilder job manually - via Build Now button.  It will fail but this action will create a workspace for the job at <code>/var/tmp/workspace/IrodsBuilder</code>
   * Become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/workspace/IrodsBuilder</code>)
-  * Create a <code>setenv</code> bash script file here containing the following:
-<code>
-  export GUS_HOME=$BASE_GUS/gus_home
-  export PROJECT_HOME=$BASE_GUS/project_home
-  export MVN_HOME=/usr/java/maven-3.3.3
-  export PATH=$GUS_HOME/bin:$PROJECT_HOME/install/bin:$MVN_HOME/bin:$PATH
-  export PERL5LIB=$GUS_HOME/lib/perl
-  export M2_REPO=$PROJECT_HOME/.m2_repository 
-</code>
-
   * As joeuser, copy the PlasmoDBMetaConfig.yaml file described earlier into the IrodsBuilder workspace (e.g.,<code>cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/workspace/IrodsBuilder/.</code>).
   * As joeuser, copy the gus configuration file (gus.config) into the IrodsBuilder workspace (e.g., <code>cp /vagrant/scratch/gus.config /var/tmp/workspace/IrodsBuilder/.</code>).
   * As joeuser, copy the text file containing the supported projects, projectList.txt into the IrodsBuilder workspace (e.g., <code>cp /vargrant/scratch/projectList.txt /var/tmp/workspace/IrodsBuilder/.</code>).
   * Log off as joeuser (<code>exit</code>).
   * Return to the Jenkins website and run the IrodsBuilder job again.  It should be successful this time.
+  * The parameter MODE defaults to Dev.  Set it to anything else to do a full clean, full checkout and site rebuild.
   
 ### Set Up IRODS Microservices
   * Copy the file containing the IRODS microservices from the EuPathDBIrods project to the location where IRODS would expect it (<code>sudo /var/tmp/workspace/IrodsBuilder/project_home/EuPathDBIrods/Scripts/ud.re /etc/irods/.</code>).
@@ -140,14 +131,6 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * This bash script differs from the one for IrodsBuilder only in that the BASE_GUS is specified here.  BASE_GUS points to the IrodsBuilder workspace as that is where the actual project resides.
   * Log off as joeuser (<code>exit</code>)
   * Return to the Jenkins website and run the IrodsListener job again.  It should be successful this time.
-  
-### Set Up the IRODS Cleaner Jenkins Job
-  * Run the IrodsCleaner job manually - via Build Now button.  It will fail but this action will create a workspace for the job at <code>/var/tmp/workspace/IrodsCleaner</code>.
-  * Become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/workspace/IrodsCleaner</code>).
-  * Copy the setenv in the IrodsListener workspace over to this workspace (<code>cp ../IrodsListener/setenv .</code>).
-  * Log off as joeuser (<code>exit</code>).
-  * Return to the Jenkins website and run the IrodsCleaner job again.  It should be successful this time.
-  * Note that this is in place to provide a clean workspace for the IrodsBuilder and is also meant to verify that IrodsBuilder is complete.
   
 ### End to End Testing
   * A sample dataset (<code>dataset_u12401223_t1231238088881.tgz</code>) is available in the EuPathDBIrods project for testing.  Copy it over to vagrant home (<code>cd ~</code> and <code>sudo c /var/tmp/workspace/IrodsBuilder/Resources/dataset_u12401223_t1231238088881.tgz .</code>).

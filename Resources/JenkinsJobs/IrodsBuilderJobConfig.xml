@@ -4,10 +4,16 @@
   <description></description>
   <keepDependencies>false</keepDependencies>
   <properties>
+    <hudson.plugins.buildblocker.BuildBlockerProperty plugin="build-blocker-plugin@1.7.3">
+      <useBuildBlocker>true</useBuildBlocker>
+      <blockLevel>NODE</blockLevel>
+      <scanQueueFor>DISABLED</scanQueueFor>
+      <blockingJobs>.*Listener</blockingJobs>
+    </hudson.plugins.buildblocker.BuildBlockerProperty>
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>JENKINS_USER_NAME</name>
+          <name>JENKINS_USERNAME</name>
           <description>This Jenkins user that is calling the IRODS Listener job.</description>
           <defaultValue>wrkspuser</defaultValue>
         </hudson.model.StringParameterDefinition>
@@ -25,6 +31,11 @@
           <name>JENKINS_JOB_TOKEN</name>
           <description>The API token for the IRODS Listener Job</description>
           <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>MODE</name>
+          <description>Indicates whether the mode of operation is development (DEV) or other.  If not development, a complete cleaning is done.</description>
+          <defaultValue>Dev</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
@@ -169,22 +180,26 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>#Note that this build cannot put IRODS dependencies in place.  That should be handled first.
+      <command>#Note that this build cannot put IRODS dependencies in place.  That should be handled separately.
 
+# Setup env variables for this build step
 export BASE_GUS=$WORKSPACE
+export GUS_HOME=$BASE_GUS/gus_home
+export PROJECT_HOME=$BASE_GUS/project_home
+export MVN_HOME=/usr/java/maven-3.3.3
+export PATH=$GUS_HOME/bin:$PROJECT_HOME/install/bin:$MVN_HOME/bin:$PATH
+export PERL5LIB=$GUS_HOME/lib/perl
+export M2_REPO=$PROJECT_HOME/.m2_repository 
 
 mkdir -p gus_home
-
-source $BASE_GUS/setenv
 
 mkdir -p $GUS_HOME/lib/java/db_driver;
 
 cp $ORACLE_HOME/jdbc/lib/ojdbc6.jar $GUS_HOME/lib/java/db_driver/
 
-# ApiCommonData build, upon which EuPathDBIrods depends, requires this file.  Using
-# a plasmodb version - will anything db instance do?
+# ApiCommonData build, upon which EuPathDBIrods depends, requires this file.
 mkdir -p $GUS_HOME/config
-cp $BASE_GUS/plasmo.gus.config $GUS_HOME/config/gus.config
+cp $BASE_GUS/gus.config $GUS_HOME/config/gus.config
 
 # Contains all the project dependencies
 bld EuPathDBIrods
@@ -194,7 +209,7 @@ bld EuPathDBIrods
 apiTnsSummary | grep -v amaz-rbld | grep -v pris-rbld | eupathCloneMetaFile $BASE_GUS/PlasmoDBMetaConfig.yaml
 
 # By convention, all meta config yaml files have this file name suffix.  The prefix is the
-# project id.
+# project id.  Run eupathSiteConfigure for each project in the projectList.txt file.
 FILE_SUFFIX=&quot;MetaConfig.yaml&quot;
 PROJECTS=$(cat projectList.txt | cut -f 2)
 for PROJECT in $PROJECTS
@@ -211,9 +226,39 @@ eupathCloneGusConfigFile gus.config -inc projectList.txt
 
 # This builds and places the jenkinsCommunicationConfig.txt file used by IRODS to call
 # Jenkins IRODS Listener job
-fgpJava org.apidb.irods.BuildJenkinsCommunicationFile -u wrkspuser -p &quot;be4797e4b88200492d29cf0aeb32f5de&quot; -j http://wij.vm:9171/job/IrodsListener/buildWithParameters -t eupathdbirods -l &quot;PlasmoDB,ToxoDB&quot;</command>
+PROJECT_LIST=$(echo $PROJECTS | sed -e &apos;s/ /,/g&apos;)
+fgpJava org.apidb.irods.BuildJenkinsCommunicationFile -u $JENKINS_USERNAME -p &quot;be4797e4b88200492d29cf0aeb32f5de&quot; -j http://wij.vm:9171/job/IrodsListener/buildWithParameters -t eupathdbirods -l $PROJECT_LIST</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>
-  <buildWrappers/>
+  <buildWrappers>
+    <org.jenkinsci.plugins.preSCMbuildstep.PreSCMBuildStepsWrapper plugin="preSCMbuildstep@0.3">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command># Setup env variables for this build step
+export BASE_GUS=$WORKSPACE
+export GUS_HOME=$BASE_GUS/gus_home
+export PROJECT_HOME=$BASE_GUS/project_home
+
+# Unless this build is run in development mode, completely remove
+# gus/project homes in this workspace.  Leaving the templates at
+# the top level of the worksapce intact for now.
+if [[ $MODE != &quot;Dev&quot; ]]
+ then
+  if [ -d &quot;$PROJECT_HOME&quot; ]
+   then
+    rm -rf $PROJECT_HOME
+    echo &quot;Removed project home.&quot;
+  fi  
+  if [ -d &quot;$GUS_HOME&quot; ]
+   then
+    rm -rf $GUS_HOME
+    echo &quot;Removed gus home.&quot;
+  fi
+fi</command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <failOnError>false</failOnError>
+    </org.jenkinsci.plugins.preSCMbuildstep.PreSCMBuildStepsWrapper>
+  </buildWrappers>
 </project>
