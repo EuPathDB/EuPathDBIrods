@@ -1,10 +1,10 @@
 def node = 'irods'
 def workspace = '/var/tmp/jenkins-irods'
-def projects = ["PlasmoDB", "ToxoDB"]
-def remoteJobToken = "eupathdbirods"
-deb builderJob = "irods-builder"
-def listenerJob = "irods-listener"
-def handlerJobPrefix = "irods-handler-"
+def projects = ['PlasmoDB', 'ToxoDB']
+def remoteJobToken = 'eupathdbirods'
+def builderJob = 'irods-builder'
+def listenerJob = 'irods-listener'
+def handlerJobPrefix = 'irods-handler-'
 def datasetStoreId = "DATASET_STORE_ID"
 
 def handlerJobDesc = { project ->
