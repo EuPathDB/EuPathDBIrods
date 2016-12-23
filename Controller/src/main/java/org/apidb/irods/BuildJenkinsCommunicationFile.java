@@ -90,9 +90,6 @@ public class BuildJenkinsCommunicationFile {
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
     String userDatasetStoreId = uds.getUserDatasetStoreId();
     contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId + NL);
-	for(String project : projects) {
-	  contents.append(project + NL);
-	}
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	// In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
 	// guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
