@@ -34,7 +34,6 @@ public class BuildJenkinsCommunicationFile {
   @SuppressWarnings("unused")
   private static final Logger logger = Logger.getLogger(BuildJenkinsCommunicationFile.class);
   private static final String JENKINS_COMMUNICATION_FILE = "jenkinsCommunicationConfig.txt";
-  private static final String NL = System.lineSeparator();
 
   public static void main(String[] args) throws Exception {
 	final CommandLineParser cmdLineParser = new PosixParser();
@@ -89,7 +88,7 @@ public class BuildJenkinsCommunicationFile {
     ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
     String userDatasetStoreId = uds.getUserDatasetStoreId();
-    contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId + NL);
+    contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId);
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	// In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
 	// guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
