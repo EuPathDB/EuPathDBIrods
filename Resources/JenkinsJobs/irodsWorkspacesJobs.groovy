@@ -21,7 +21,7 @@ def handlerJobDesc = { project ->
 
 def handlerStep = { project ->
   return """
-    export BASE_GUS="/var/tmp/workspace/IrodsBuilder"
+    export BASE_GUS="\$WORKSPACE"
     export GUS_HOME="\$BASE_GUS/gus_home"
     export PROJECT_HOME="\$BASE_GUS/project_home"
     export PATH="\$GUS_HOME/bin:\$PROJECT_HOME/install/bin:\$PATH"
