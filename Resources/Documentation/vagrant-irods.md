@@ -1,6 +1,6 @@
 # How to Set Up a Full IRODS Env for WDK on Vagrant
 
-These steps are based upon the contents of the EuPathDBIrods project which is found in the [svn repository](https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk/).  This document is very, very preliminary and subject to change - possibly considerable change.  So stay tuned.
+These steps are based upon the contents of the EuPathDBIrods project which is found in the [svn repository](https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk/).  This document is very preliminary and subject to change - possibly considerable change.  So stay tuned.
 
 ### Install and Start Up Vagrant
   * Insure that the vagrant is properly provisioned.  Using [vagrant-wij](https://github.com/EuPathDB/vagrant-wij)
@@ -13,10 +13,10 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Create, in the same directory, a gus.config file for the PlasmoDB project.  It too, will serve as a template for creating additional [project].gus.config files for all the projects to be supported.
   * Create, in the same directory, a file, projectList.txt.  It will contain all the projects to be supported by the Jenkins IRODS Build and will be formatted with the database prefix and the project id separated by a tab.  For example:
   
- <code>
- plas	PlamsoDB
+<code>
+ plas	PlasmoDB
  toxo	ToxoDB
- </code>	  
+</code>	  
 
   * In scratch, create a project_home directory.
   * In the project_home dir, checkout from svn, the EuPathDBIrods project (<code>svn checkout https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk project_home/EuPathDBIrods</code>). 
@@ -40,7 +40,7 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   
 ### Create a Jenkins node for IRODS.
   * This mirrors the typical production Jenkins setup.
-  * The node user is joeuser.  Again consult the link above for a setup guide.
+  * The node user is joeuser and the node name is irods.  Again consult the link above for a setup guide.
   * The workspace will be in <code>/var/tmp</code>.
   
 ###  Create IRODS scaffold
@@ -54,14 +54,18 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Add <code>"irods_home": "/ebrc/workspaces"</code>
   * Remember to add a comma where appropriate to insure proper json syntax.
   
-### Load Jenkins Jobs
-  * Become the Jenkins user (note Jenkins does not have a login shell <code>sudo su -s /bin/bash jenkins</code>).
-  * Go to the Jenkins jobs directory (<code>cp /usr/local/home/jenkins/Instances/WS/jobs</code>).
-  * Set up job directories for each job (<code>mkdir IrodsBuilder IrodsListener</code>).
-  * Add each of the three build configurations to its respective folder as config.xml.  They are found in the EuPathDBIrods project (e.g., <code>cp /vagrant/scratchEuPathDBIrods/Configurations/JenkinsJobs/IrodsBuilder.xml config.xml</code>).
-  * Log off as jenkins (<code>exit</code>).
-  * On the Jenkins website (as admin), go to <code>Manage Jenkins -> Reload Configuration from Disk</code>
-  
+### Generate Jenkins Jobs
+  * To generate the Jenkins Jobs, we will follow the procedure described in the <code>JenkinsSetup.md</code> that comes with the vagrant-wij package with a few alterations.
+  * Insure that all the needed plugins are installed.
+  * Outside of vagrant, copy the generator script for the irods jobs from the EuPathDBIrods project into the scratch directory (<code>cp scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsWorkspacesJobs.groovy .</code>).
+  * Rather than follow pasting the Groovy script described in the markdown document, paste into the Jenkins Script Console (under Manage Jenkins), the script found at <code>scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsJobGenerator.txt</code>.
+  * That script will create a shared workspace in /var/tmp/jenkins-irods.
+  * In vagrant, become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/jenkins-irods</code>).
+  * As joeuser, copy the PlasmoDBMetaConfig.yaml file described earlier into this workspace (e.g.,<code>cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/jenkins-irods/.</code>).
+  * As joeuser, copy the gus configuration file (gus.config) into this workspace (e.g., <code>cp /vagrant/scratch/gus.config /var/tmp/jenkins-irods/.</code>).
+  * As joeuser, copy the text file containing the supported projects, projectList.txt into this workspace (e.g., <code>cp /vargrant/scratch/projectList.txt /var/tmp/jenkins-irods/.</code>).
+  * On the Jenkins website, run the irods-job-generator.  The build should create an irods-builder, an irods-listener, and as many irods-handler-[project] jobs as there are project supported in the irodsWorkspacesJob.groovy script.
+
 ### Set Up Subversion
   * Jenkins 2 uses the default SVN version of 1.4.
   * On the Jenkins website (as admin), go to <code>Manage Jenkins ->  Configure System</code> and change the Subversion version to 1.8.
@@ -69,19 +73,6 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Allow DB Connections Through Firewall
   * Run sshuttle (<code>sshuttle -e 'ssh -o StrictHostKeyChecking=no' -r [user]@spruce.pcbi.upenn.edu 128.91.49.128/24 128.192.0.0/16 > /dev/null 2>&1 &</code>).
   * Insure that a process number is returned.  Remember to do this initially after vagrant up/vagrant ssh or builds will not work.
-  
-### Verify Jobs
-  * For each of the jobs, IrodsBuilder and IrodsListener, verify that each is restricted to run on the irods node and set it if otherwise.
-  
-### Set Up Irods Builder Jenkins Job
-  * Run the IrodsBuilder job manually - via Build Now button.  It will fail but this action will create a workspace for the job at <code>/var/tmp/workspace/IrodsBuilder</code>
-  * Become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/workspace/IrodsBuilder</code>)
-  * As joeuser, copy the PlasmoDBMetaConfig.yaml file described earlier into the IrodsBuilder workspace (e.g.,<code>cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/workspace/IrodsBuilder/.</code>).
-  * As joeuser, copy the gus configuration file (gus.config) into the IrodsBuilder workspace (e.g., <code>cp /vagrant/scratch/gus.config /var/tmp/workspace/IrodsBuilder/.</code>).
-  * As joeuser, copy the text file containing the supported projects, projectList.txt into the IrodsBuilder workspace (e.g., <code>cp /vargrant/scratch/projectList.txt /var/tmp/workspace/IrodsBuilder/.</code>).
-  * Log off as joeuser (<code>exit</code>).
-  * Return to the Jenkins website and run the IrodsBuilder job again.  It should be successful this time.
-  * The parameter MODE defaults to Dev.  Set it to anything else to do a full clean, full checkout and site rebuild.
   
 ### Set Up IRODS Microservices
   * Copy the file containing the IRODS microservices from the EuPathDBIrods project to the location where IRODS would expect it (<code>sudo /var/tmp/workspace/IrodsBuilder/project_home/EuPathDBIrods/Scripts/ud.re /etc/irods/.</code>).
@@ -108,32 +99,16 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Make them executable (<code>sudo chmod 755 /var/lib/irods/iRODS/server/bin/cmd/*.py</code>)
   * Make them owned by IRODS (<code>sudo chown irods.irods /var/lib/irods/iRODS/server/bin/cmd/*.py</code>).
   
-### Set Up IRODS - Jenkins Communication Configuration File
-  * This file, jenkinsCommunicationConfig.txt is actually created during the IrodsBuilder build step.
-  * It is located in IRODS at <code>/ebrc/workspaces</code> and will be used by one of the python scripts mentioned above to communicate with the IRODSListener job on Jenkins.
+### Run the IRODS Builder Job
+  * This job is parameterized with the username and password/token of the Jenkins user that will be calling the IRODS listener job from within the IRODS ecosystem.
+  * A third parameter, MODE, defaults to Dev.  Put anything else in its place to force a clean and complete rebuild of the shared workspace.  Note that the clean removes gus_home and project_home, but not the template files copies over from <code>/vagrant/scratch</code>.
+  * This job will check out from svn, the 17 projects needed for the other IRODS jobs.
+  * Additionally, the job will use the template files to create model-config.xml and [project].gus.config files for every project supported (as determined by the projectList.txt file).
+  * FInally, the job will create the jenkinsCommunicationConfig.txt. It is located in IRODS at <code>/ebrc/workspaces</code> and will be used by one of the python scripts mentioned above to communicate with the IRODS Listener (irods-listener) job on Jenkins.
   * It would be prudent to be sure that file was created and properly placed.
   
-### Set Up the IRODS Listener Jenkins Job
-  *  Run the IrodsListener job manually - via Build Now button.  It will fail but this action will create a workspace for the job at <code>/var/tmp/workspace/IrodsListener</code>
-  * Become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/workspace/IrodsListener</code>).
-  * Create a <code>setenv</code> bash script file here containing the following:
-  
-<code>
-	 export BASE_GUS=/var/tmp/workspace/IrodsBuilder
-	 export GUS_HOME=$BASE_GUS/gus_home
-	 export PROJECT_HOME=$BASE_GUS/project_home
-	 export MVN_HOME=/usr/java/maven-3.3.3
-	 export PATH=$GUS_HOME/bin:$PROJECT_HOME/install/bin:$MVN_HOME/bin:$PATH
-	 export PERL5LIB=$GUS_HOME/lib/perl
-	 export M2_REPO=$PROJECT_HOME/.m2_repository
-</code>
-
-  * This bash script differs from the one for IrodsBuilder only in that the BASE_GUS is specified here.  BASE_GUS points to the IrodsBuilder workspace as that is where the actual project resides.
-  * Log off as joeuser (<code>exit</code>)
-  * Return to the Jenkins website and run the IrodsListener job again.  It should be successful this time.
-  
 ### End to End Testing
-  * A sample dataset (<code>dataset_u12401223_t1231238088881.tgz</code>) is available in the EuPathDBIrods project for testing.  Copy it over to vagrant home (<code>cd ~</code> and <code>sudo c /var/tmp/workspace/IrodsBuilder/Resources/dataset_u12401223_t1231238088881.tgz .</code>).
+  * A sample dataset (<code>dataset_u12401223_t1231238088881.tgz</code>) is available in the EuPathDBIrods project for testing.  Copy it over to vagrant home (<code>cd ~</code> and <code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/dataset_u12401223_t1231238088881.tgz .</code>).
   * Be careful - it is easy to inadvertantly run Unix commands rather than iCommands.
   * Go to the IRODS landing zone (<code>icd /ebrc/workspaces/lz</code>)
   * Put this dataset into the landing zone (<code>iput dataset_u12401223_t1231238088881.tgz</code>)
@@ -150,16 +125,26 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 Note that these modifications assume that the setup described in How to Set Up a Full IRODS Env for WDK on Vagrant is complete and correct.  These changes are not appropriate for production release.
 
 ### Modify Jenkins User
-  * Since joeuser has full access to the project_home under IrodsBuilder, we can set this user up to have IRODS access also.
+  * Since joeuser has full access to the project_home under /var/tmp/jenkins-irods, we can set this user up to have IRODS access also.
   * Become joeuser (<code>sudo su - joeuser</code>).  The home directory will be <code>/usr/local/home/joeuser</code>.
   * Follow the instructions in Setup IRODS User above to give joeuser IRODS access.
   * Add a proper IRODS home directory also, as described in Setup IRODS User Home Directory.
-  * Copy the setenv file in the IrodsListener workspace to joeuser home dir (<code>cp /var/tmp/workspaces/IrodsListener/setenv /user/local/home/joeuser</code>).
-  * Modify this new setenv file to add the line <code>export PROJECT_ID=[projectId]</code> where projectId refers to a project supported in this build that the developer wants to use for development work (e.g., PlasmoDB).
+  * Create a setenv file in joeuser's home dir:
+<code>
+	export BASE_GUS=/var/tmp/jenkins-irods
+	export GUS_HOME=$BASE_GUS/gus_home
+	export PROJECT_HOME=$BASE_GUS/project_home
+	export PATH=$GUS_HOME/bin:$PROJECT_HOME/install/bin:$MVN_HOME/bin:$PATH
+	export PERL5LIB=$GUS_HOME/lib/perl
+	export PROJECT_ID=PlasmoDB
+</code>	  
+
+  * The PROJECT_ID environmental variable can be any project supported by this application.
+  * Add a DATASET_SOURCE_ID environment variable and set it to the last entry in the comma delimited line found in the jenkinsCommunicationsConfig.txt file.
   
 ### Alter Source Code Location
   * The only source code likely to be changed for development will be EuPathDBIrods, WDK, and FgpUtil.
-  * Consequently, as joeuser, remove those projects from project_home in the IrodsBuilder workspace.
+  * Consequently, as joeuser, remove those projects from project_home in the workspace.
 <code>
 	  source setenv
 	  rm -rf $PROJECT_HOME/WDK  
@@ -168,9 +153,9 @@ Note that these modifications assume that the setup described in How to Set Up a
 
 </code>
 
-  * Outside of vagrant, create a project_home directory inside this vagrant's scratch directory and checkout this 3 projects into that project_home folder.
+  * Outside of vagrant, create a project_home directory inside this vagrant's scratch directory and checkout WDK and FgpUtils alongside EuPathDBIrods into that project_home folder.
   * For convenience one can create a new Eclipse workspace pointing to this project_home so that the IDE may be used to modify code.
-  * Inside vagrant, as joeuser symlink to these 3 projects from inside the project_home of the IrodsBuilder workspace.
+  * Inside vagrant, as joeuser symlink to these 3 projects from inside the project_home of the Jenkins IRODS workspace.
 <code>
 	cd $PROJECT_HOME
 	ln -s /vagrant/scratch/project_home/WDK WDK
@@ -181,8 +166,9 @@ Note that these modifications assume that the setup described in How to Set Up a
 
 ###   Using this Development Environment
   * As the vagrant user, make sure to run sshuttle to permit DB access - see Allow DB Connections Through Firewall above.
-  * As joeuser, one can run the Irods Listener code outside of Jenkins by simply running <code>fgpJava org.apidb.irods.EuPathDBIrods</code>.  The project id is provided by an environmental variable that was set in the setenv script.
-  * One can still run Irods Listener from Jenkins.
+  * Build any Java code changes manually from within the project_home in the Jenkins IRODS workspace (e.g., <code>bld EuPathDBIrods/Controller</code>).
+  * As joeuser, one can run the Irods handler jobs (irods-handler-[project]) outside of Jenkins by simply running <code>fgpJava org.apidb.irods.EuPathDBIrods</code>.  The project id and the dataset_source_id are provided by environmental variables that were set in the setenv script.
+  * One can still run any Irods handler job (irods-handler-[project]) directly from Jenkins, filling in the required DATASET_SOURCE_ID parameter at that point.  One can also run the Irods listener job (irods-listener) directly from Jenkins, again filling in the required DATASET_SOURCE_ID parameter.
   * The log4j.properties under $GUS_HOME/config is the location of the log4j configuration and it currently set to log any org.gusdb or org.apidb logging statement with a priority level of INFO or greater.
   * Since jobuser is the same IRODS user as vagrant, the iput command in the End to End Testing section should apply equally well here.
 	  
