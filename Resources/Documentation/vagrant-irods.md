@@ -130,6 +130,7 @@ Note that these modifications assume that the setup described in How to Set Up a
   * Follow the instructions in Setup IRODS User above to give joeuser IRODS access.
   * Add a proper IRODS home directory also, as described in Setup IRODS User Home Directory.
   * Create a setenv file in joeuser's home dir:
+  
 <code>
 	export BASE_GUS=/var/tmp/jenkins-irods
 	export GUS_HOME=$BASE_GUS/gus_home
@@ -145,23 +146,23 @@ Note that these modifications assume that the setup described in How to Set Up a
 ### Alter Source Code Location
   * The only source code likely to be changed for development will be EuPathDBIrods, WDK, and FgpUtil.
   * Consequently, as joeuser, remove those projects from project_home in the workspace.
+  
 <code>
-	  source setenv
-	  rm -rf $PROJECT_HOME/WDK  
-  	  rm -rf $PROJECT_HOME/FgpUtil
-	  rm -rf $PROJECT_HOME/EuPathDBIrods
-
+   source setenv
+   rm -rf $PROJECT_HOME/WDK
+   rm -rf $PROJECT_HOME/FgpUtil
+   rm -rf $PROJECT_HOME/EuPathDBIrods
 </code>
 
   * Outside of vagrant, create a project_home directory inside this vagrant's scratch directory and checkout WDK and FgpUtils alongside EuPathDBIrods into that project_home folder.
   * For convenience one can create a new Eclipse workspace pointing to this project_home so that the IDE may be used to modify code.
   * Inside vagrant, as joeuser symlink to these 3 projects from inside the project_home of the Jenkins IRODS workspace.
+
 <code>
 	cd $PROJECT_HOME
 	ln -s /vagrant/scratch/project_home/WDK WDK
 	ln -s /vagrant/scratch/project_home/FgpUtil FgpUtil
 	ln -s /vagrant/scratch/project_home/EuPathDBIrods EuPathDBIrods
-	
 </code>	
 
 ###   Using this Development Environment
