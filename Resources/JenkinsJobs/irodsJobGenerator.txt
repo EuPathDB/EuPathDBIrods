@@ -1,0 +1,20 @@
+    import jenkins.model.Jenkins;
+    import hudson.model.FreeStyleProject;
+
+    job = Jenkins.instance.createProject(FreeStyleProject, 'irods-job-generator')
+    job.customWorkspace = '/vagrant'
+    job.displayName = 'irods-job-generator'
+
+    builder = new javaposse.jobdsl.plugin.ExecuteDslScripts(
+      new javaposse.jobdsl.plugin.ExecuteDslScripts.ScriptLocation(
+          'false',
+          'irodsWorkspacesJobs.groovy',
+          null),
+      false,
+      javaposse.jobdsl.plugin.RemovedJobAction.DELETE, 
+      javaposse.jobdsl.plugin.RemovedViewAction.DELETE, 
+      javaposse.jobdsl.plugin.LookupStrategy.JENKINS_ROOT
+    )
+    job.buildersList.add(builder)
+    job.save()
+    job.scheduleBuild(0)
