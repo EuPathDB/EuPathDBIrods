@@ -23,9 +23,10 @@ import org.xml.sax.SAXException;
 
 /**
  * This is a small application intended to be run at the end of a Jenkins IRODS build.  It creates
- * a jenkinsCommunicationConfig.txt file and stuffs it into IRODS at /ebrc/workspaces.  The file
- * provides the information needed by IRODS to communicate events back to the Jenkins IRODSListener
- * job.  This can also be used on the command line as the needed parameters are passed in.
+ * a jenkinsCommunicationConfig.txt file and stuffs it into IRODS at a place sibling to the user
+ * dataset root directory.  The file provides the information needed by IRODS to communicate events
+ * back to the Jenkins IRODS listener job.  This can also be used on the command line as the needed
+ * parameters are passed in.
  * @author crisl-adm
  *
  */
@@ -42,13 +43,13 @@ public class BuildJenkinsCommunicationFile {
     cmdOptions.addOption("p",true,"Token for Jenkins User");
     cmdOptions.addOption("j",true,"Url of Jenkins Job");
     cmdOptions.addOption("t",true,"Jenkins Job Token");
-    cmdOptions.addOption("l",true,"Comma delimited list of Supported Projects");
+    cmdOptions.addOption("l",true,"An Example Supported Project");
     CommandLine commandLine;
     String username = null;
     String password = null;
     String job = null;
     String token = null;
-    String projectList = null;
+    String project = null;
     try {
       commandLine = cmdLineParser.parse(cmdOptions, args);
       if(commandLine.hasOption("u")) {
@@ -64,21 +65,23 @@ public class BuildJenkinsCommunicationFile {
     	token = commandLine.getOptionValue("t");
       }
       if(commandLine.hasOption("l")) {
-    	projectList = commandLine.getOptionValue("l");
+    	project = commandLine.getOptionValue("l");
       }
     }
     catch (ParseException pe) {
       throw new RuntimeException(pe);  
     }
-    if(username == null || password == null || job == null || token == null || projectList == null) {
+    if(username == null || password == null || job == null || token == null || project == null) {
       throw new RuntimeException("Some required parameters were not specified");
     }
-    String[] projects = projectList.split(",");
+    
+    // We need to choose one of the model-config.xml files to parse.  So we need to pass in one of
+    // the projects supported so as to locate one of these config files.
     String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);     
     ModelConfigParser parser = new ModelConfigParser(gusHome);
     ModelConfig modelConfig = null;
     try {
-  	  modelConfig = parser.parseConfig(projects[0]);
+  	  modelConfig = parser.parseConfig(project);
   	} 
   	catch(WdkModelException | SAXException | IOException e) {
   	  e.printStackTrace();
@@ -87,12 +90,14 @@ public class BuildJenkinsCommunicationFile {
     StringBuilder contents = new StringBuilder();
     ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
+    // The dataset store id is tacked onto the file being created so that it may be used to insure
+    // that the IRODS instance using this file is that of the IRODS instance described in the file.
     String userDatasetStoreId = uds.getUserDatasetStoreId();
     contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId);
 	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
 	// In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
 	// guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
-	// root directory applies to the users directory, but the jenkins communication file is sibling to that
+	// root directory applies to the users directory, but the Jenkins communication file is sibling to that
 	// directory.  Hence we use a relative address.
 	String userDatasetRootDir = userDatasetStoreId.split("\\|")[0];
 	String topLevelFilePath = userDatasetRootDir + File.separator + "..";

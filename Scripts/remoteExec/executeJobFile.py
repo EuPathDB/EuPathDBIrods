@@ -4,15 +4,16 @@ import requests
 import sys
 from urlparse import urlparse
 
-# Utility method to take output of jobFile.txt (sent via IRODS), turn it into a series of http requests.
+# Utility method to take the content of a Jenkins Communication Configuration file sent via IRODS, and
+# turn it into an http request to a Jenkins listener job.
 # Initial request is a get method to retrieve a crumb to be put in all subsequent request headers to avoid CSRF
-# Each post request is called in turn.  An example parameter list is provided below
+# The post request follows that.  An example parameter string for this python script mimicing what IRODS
+# transmits is shown below for diagnostic purposes.
 # (see sure to remove hashes and any spurious characters the editor may introduce)
 # Done with the generous assistance of Mark Heiges
 
 # Example parameter list
 # "wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/build,eupathdbirods,otherstuff"
-
 
 # This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by irods.
 

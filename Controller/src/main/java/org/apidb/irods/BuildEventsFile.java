@@ -50,6 +50,7 @@ public class BuildEventsFile {
 	}
 	ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore uds = udsConfig.getUserDatasetStore();
+    // Insures that only the correct IRODS is calling this method.
     if(!uds.getUserDatasetStoreId().equals(datasetStoreId)) {
       throw new RuntimeException("Called by wrong IRODS " + datasetStoreId);
     }
@@ -66,6 +67,8 @@ public class BuildEventsFile {
 	List<String> eventList = new ArrayList<>();
 	for(Path eventFile : eventFiles) {
 	  String eventFilename = eventFile.getFileName().toString();
+	  // The timestamp used to make each event file unique is extracted from the event filename and
+	  // pre-pended to the event content to serve as an event id.
 	  String timestamp = eventFilename.substring(eventFilename.indexOf('_') + 1, eventFilename.indexOf('.'));
 	  String event = udsa.readFileContents(eventFile);
 	  events.append(timestamp + "\t" + event + System.getProperty("line.separator"));
