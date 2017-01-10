@@ -77,7 +77,6 @@ public class BuildEventsFile {
 	System.out.println(events.toString());
 	String cmdName = System.getProperty("cmdName");
 	UserDatasetEventListHandler handler = new UserDatasetEventListHandler(cmdName);
-	handler.parseEventsList(eventList);
 	handler.setProjectId(projectId);
 	Path tmpDir =  Paths.get(handler.getWdkTempDirName());
     handler.handleEventList(handler.parseEventsList(eventList), modelConfig.getUserDatasetStoreConfig().getTypeHandlers(), tmpDir);
