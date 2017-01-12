@@ -10,8 +10,12 @@ import tarfile
 import requests
 from requests.auth import HTTPBasicAuth
 
-# Sample for testing outside of Galaxy:
-# python exportGeneListToEuPathDB.py "a name" "a description" "a summary" "test-data/genelist.txt" "test-data/output.txt" "108976930"
+'''
+ The following program is a Galaxy Tool for exporting gene list data from Galaxy to EuPathDB via IRODS.
+
+ Sample for testing outside of Galaxy:
+ python exportGeneListToEuPathDB.py "a name" "a description" "a summary" "test-data/genelist.txt" "test-data/output.txt" "108976930"
+'''
 
 def __main__():
 
@@ -23,25 +27,27 @@ def __main__():
     datasetName = args[0]
     description = args[1]
     summary = args[2]
-    datasetFiles = args[3]
+    datasetFile = args[3]
     results = args[4]
     userId = args[5]
     # My WDK user id for now
     userId = "108976930"
 
+    # Create a unique temporary directory that serve as a staging area for assembling the tarball.
     tempPath = tempfile.mkdtemp('dataset_u' + userId + '_t' + str(timestamp))
     os.mkdir(tempPath + "/datafiles")
 
-    path, name = os.path.split(datasetFiles)
+    path, name = os.path.split(datasetFile)
+    size = os.stat(datasetFile).st_size
 
-    # Must datafiles have specific names?
-    shutil.copy(datasetFiles, tempPath + "/datafiles/genelist.txt")
-
+    # Copy the gene list dataset file under the datafiles folder of the temporary dir and change the filename to genelist.txt
+    shutil.copy(datasetFile, tempPath + "/datafiles/genelist.txt")
     with open(tempPath + "/meta.json", "w+") as metaFile:
         dump({'name': datasetName,
               'description': description,
               'summary': summary}, metaFile, indent=4)
 
+    # Create and populate the dataset.json file that must be included in the tarball
     with open(tempPath + "/dataset.json", "w+") as datasetFile:
         dump({
           "type": {"name": "GeneList", "version": "1.0"},
@@ -55,7 +61,7 @@ def __main__():
               ],
            "projects": ["PlasmoDB"],
            "owner": userId,
-           "size": 200000000,
+           "size": size,
            "modified": timestamp,
            "created": timestamp
         }, datasetFile, indent=4)

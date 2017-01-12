@@ -3,9 +3,9 @@
   <command interpreter="python">exportGeneListToEuPathDB.py "$datasetName" "$description" "$summary" "$input" "$output" "$__user_id__"</command>
   <inputs>
     <param name="datasetName" type="text" value="" label="EuPathDB dataset name:" help=""/>
-    <param name="description" type="text" value="" label="EuPathDB dataset escription:" help="" />
+    <param name="description" type="text" value="" label="EuPathDB dataset description:" help="" />
     <param name="summary" type="text" value="" label="EuPathDB dataset summary:" help="" />
-    <param name="input" type="data" format="txt" label="Dataset to export" />
+    <param name="input" type="data" format="txt" label="Gene list to export" />
   </inputs>
   <outputs>
       <data format="txt" name="output" label="results.txt" />
