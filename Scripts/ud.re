@@ -8,9 +8,10 @@
 acPostProcForPut {
 	writeLine("serverLog", "PEP acPostProcForPut - $objPath");
 	msiSplitPath($objPath, *fileDir, *fileName);
-	# if a tgz file is put into the landing zone, unpack it
-	if(*fileDir == "/ebrc/workspaces/lz" && *fileName like regex "dataset_u.*_t.*[.]tgz") then {
-		acLandingZonePostProcForPut(*fileDir, *fileName);
+	# if a properly composed txt file is put into the landing zone, find the corresponding tarball and upack it.
+	if(*fileDir == "/ebrc/workspaces/lz" && *fileName like regex "dataset_u.*_t.*[.]txt") then {
+		*tarballName = trimr(*fileName,".") ++ ".tgz";
+		acLandingZonePostProcForPut(*fileDir, *tarballName);
 	}
 	# if a file is put into the sharedWith directory of a dataset, report it
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
@@ -64,14 +65,15 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	# insure the the user id is a positive number
 	if(int(*userId) > 0) {
 	  # unpack the tarball under the user datasets folder using the data id as the dataset id.	
+	  *tarballPath = *fileDir ++ "/" ++ *fileName;
       *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	  writeLine("serverLog", "Unpacking $objPath to *userDatasetPath");
-  	  msiTarFileExtract($objPath, *userDatasetPath, $rescName, *UnpkStatus):::msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
-	  writeLine("serverLog", "Unpacked $objPath successfully");
+  	  msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus):::msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+	  writeLine("serverLog", "Unpacked *tarballPath successfully");
 	  
 	  # Remove the tarball following unpacking.
-	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
-	  writeLine("serverLog", "Removed $objPath tarball");
+	  msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+	  writeLine("serverLog", "Removed *tarballPath tarball");
 	  
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
@@ -84,7 +86,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
     }
 	else {
 	  # file name is mis-formatted, so toss.	
-	  msiDataObjUnlink("objPath=$objPath++++replNum=0++++forceFlag=",*DelStatus);
+	  msiDataObjUnlink("objPath=$tarballPath++++replNum=0++++forceFlag=",*DelStatus);
 	}
 }
 
