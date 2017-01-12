@@ -1,3 +1,4 @@
+# Removes ALL user datasets (users remain intact)
 utilDeleteAllDatasets {
          writeLine("stdout", "Starting deletion of all user datasets");
 		 *Datasets = SELECT COLL_NAME WHERE COLL_PARENT_NAME like *Location;

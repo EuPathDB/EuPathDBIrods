@@ -1,3 +1,4 @@
+# Flushes all event files from the events collection
 utilEmptyEventsCollection {
   writeLine("stdout", "Starting deletion of all events");
   *results = SELECT DATA_NAME WHERE COLL_NAME == *eventCollection;
