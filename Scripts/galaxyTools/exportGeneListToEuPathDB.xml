@@ -1,0 +1,37 @@
+<tool id="exportGeneListToEuPathDB" name="Gene List to EuPathDB" version="1.0.0">
+  <description>Export a gene list to EuPathDB</description>
+  <command interpreter="python">exportGeneListToEuPathDB.py "$datasetName" "$description" "$summary" "$input" "$output" "$__user_id__"</command>
+  <inputs>
+    <param name="datasetName" type="text" value="" label="EuPathDB dataset name:" help=""/>
+    <param name="description" type="text" value="" label="EuPathDB dataset escription:" help="" />
+    <param name="summary" type="text" value="" label="EuPathDB dataset summary:" help="" />
+    <param name="input" type="data" format="txt" label="Dataset to export" />
+  </inputs>
+  <outputs>
+      <data format="txt" name="output" label="results.txt" />
+  </outputs>
+  <tests>
+    <test>
+      <param name="datasetName" value="Sample Dataset"/>
+      <param name="description" value="A sample dataset description" />
+      <param name="summary" value="A sample dataset summary"/>
+
+    </test>
+  </tests>
+
+  <help>
+
+**What it does**
+
+This tool obtains a gene list and from that, creates a valid EuPathDB dataset that may be exported to one or
+more EuPathDB project.
+
+You need to provide a name for the dataset so that you may easily identify it in EuPathDB websites, along with
+a description and a summary and of course, a gene list.  All inputs are required.
+-----
+
+**Example**
+
+
+    </help>
+</tool>
