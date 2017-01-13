@@ -43,7 +43,9 @@ acPostProcForDelete {
 # Custom event hook for user dataset pre-processiong preceeding an irm of a collection
 acPreprocForRmColl {
     writeLine("serverLog", "PEP acPreprocForRmColl - $collName");
-	if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
+    *FlushFilePath = "/ebrc/workspaces/flushMode";
+    msiDataObjOpen("objPath=*FlushFilePath++++replNum=0++++openFlags=O_RDONLY", *flushFileDescriptor);
+    if(flushFileDescriptor < 0 && $collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
 	  acDatasetPreprocForRmColl();
 	}
 }
