@@ -66,25 +66,30 @@ def __main__():
            "created": timestamp
         }, datasetFile, indent=4)
 
+    # The result file contains the information to be returned to the Galaxy user
     with open(results, "w+") as resultsFile:
 
         os.chdir(tempPath)
 
         fileRoot = "dataset_u" + userId + "_t" + str(timestamp)
 
-
+        # Package the tarball using the dataset_uNNNNN_tNNNNN.tgz convention
         with tarfile.open(fileRoot + ".tgz", "w:gz") as tarball:
             for item in ["meta.json", "dataset.json", "datafiles"]:
                 tarball.add(item)
 
+        # Call the IRODS rest service to drop the tarball into the IRODS workspace landing zone
         restUrl = "http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/lz/" + fileRoot + ".tgz"
         headers = {"Accept":"application/json"}
         file = {"uploadFile":open(fileRoot + ".tgz","rb")}
+        # TODO - POC only!! gotta salt away the usr/pwd somehow
         auth = HTTPBasicAuth('wrkspuser', 'passWORD')
 
         response = requests.post(restUrl, auth=auth, headers=headers, files=file)
         resultsFile.write("Tarball - " + str(response.status_code) + "\n" + response.text + "\n")
 
+        # Call the IRODS rest service to drop a flag into the IRODS workspace landing zone.  This flag
+        # triggers the IRODS PEP that unpacks the tarball and posts the event to Jenkins
         with open(fileRoot + ".txt", "w+") as flag:
             flag.write("flag")
         restUrl = "http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/lz/" + fileRoot + ".txt"
@@ -92,6 +97,7 @@ def __main__():
         response = requests.post(restUrl, auth=auth, headers=headers, files=file)
         resultsFile.write("Flag - " + str(response.status_code) + "\n" + response.text + "\n")
 
+        # TODO - throw away the temp dir.
         resultsFile.write("The temporary dataset directory is " + tempPath)
 
 
