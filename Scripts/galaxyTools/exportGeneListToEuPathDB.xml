@@ -5,11 +5,15 @@
     <param name="datasetName" type="text" value="" label="EuPathDB dataset name:" help=""/>
     <param name="description" type="text" value="" label="EuPathDB dataset description:" help="" />
     <param name="summary" type="text" value="" label="EuPathDB dataset summary:" help="" />
-    <param name="project" type="select" label="Relevant EuPathDB project">
+    <param name="project" type="select" label="Relevant EuPathDB project:">
       <option value="plasmoDB">PlasmoDB</option>
       <option value="toxoDB">ToxoDB</option>
     </param>
-    <param name="input" type="data" format="txt" label="Gene list to export" />
+    <!--
+     multiple = false by default.  If the user select N files, the tool runs N times.  This is
+     a problem since the accompanying information will be the same each time.
+     -->
+    <param name="input" type="data" format="txt" label="Gene list to export:" />
   </inputs>
   <outputs>
       <data format="txt" name="output" label="results.txt" />
@@ -26,7 +30,7 @@
     </test>
   </tests>
 
-  <help>
+    <help>
 
 **What it does**
 
@@ -34,11 +38,24 @@ This tool obtains a gene list and from that, creates a valid EuPathDB dataset th
 more EuPathDB project.
 
 You need to provide a name for the dataset so that you may easily identify it in EuPathDB websites, along with
-a description and a summary, the project to which the dataset applies and of course, a gene list.  All inputs are required.
+a description and a summary, the project to which the dataset applies and of course, a gene list. All inputs are
+required.
+
 -----
 
 **Example**
 
+Here is an example of a properly filled in form:
+      
+.. image:: ${static_path}/images/geneListToolDemo.png
+        :height: 200
+        :width: 500
 
-    </help>
+.. class:: warningmark
+
+Recommend that the user only supply one dataset file at a time. The tool can run in batch mode,
+but the datasets could be very difficult to distinguish in EuPath as all the other parameters above
+will apply to every dataset.
+
+</help>
 </tool>
