@@ -40,6 +40,7 @@ def __main__():
     timestamp = int(time.time() * 1000)
 
     # TODO host, port, username and password will need to go into a configuration file somehow
+    # TODO protocol should be SSL
     REST_URL = "http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/lz/"
     USER = "wrkspuser"
     PWD = "passWORD"
@@ -112,7 +113,10 @@ def __main__():
         # Call the IRODS rest service to drop the tarball into the IRODS workspace landing zone
         dataset_response = send_request(REST_URL, export_file_root + ".tgz", USER, PWD)
         resultsFile.write("Tarball - " + str(dataset_response.status_code) + "\n" + dataset_response.text + "\n")
-        if dataset_response.status_code != requests.codes.ok:
+        try:
+          dataset_response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+          print >> sys.stderr, "Error: " + str(e)
           sys.exit(os.EX_IOERR)
 
         # Create a empty (flag) file corresponding to the tarball
@@ -122,7 +126,10 @@ def __main__():
         # triggers the IRODS PEP that unpacks the tarball and posts the event to Jenkins
         flag_response = send_request(REST_URL, export_file_root + ".txt", USER, PWD)
         resultsFile.write("Flag - " + str(flag_response.status_code) + "\n" + flag_response.text + "\n")
-        if flag_response.status_code != requests.codes.ok:
+        try:
+          flag_response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+          print >> sys.stderr, "Error: " + str(e)
           sys.exit(os.EX_IOERR)
 
       # Step out of the temp directory
