@@ -16,7 +16,7 @@ import contextlib
  The following program is a Galaxy Tool for exporting gene list data from Galaxy to EuPathDB via IRODS.
 
  Sample for testing outside of Galaxy:
- python exportGeneListToEuPathDB.py "a name" "a description" "a summary" "PlasmoDB" "test-data/genelist.txt" "test-data/output.txt" "108976930"
+ python exportGeneListToEuPathDB.py "a name" "a summary" "a description" "PlasmoDB" "test-data/genelist.txt" "test-data/output.txt" "108976930"
 '''
 
 def __main__():
@@ -27,8 +27,8 @@ def __main__():
 
     # Salt away all parameters.
     dataset_name = args[0]
-    description = args[1]
-    summary = args[2]
+    summary = args[1]
+    description = args[2]
     project = args[3]
     dataset_file = args[4]
     results = args[5]
@@ -112,7 +112,7 @@ def __main__():
 
         # Call the IRODS rest service to drop the tarball into the IRODS workspace landing zone
         dataset_response = send_request(REST_URL, export_file_root + ".tgz", USER, PWD)
-        resultsFile.write("Tarball - " + str(dataset_response.status_code) + "\n" + dataset_response.text + "\n")
+        #resultsFile.write("Tarball - " + str(dataset_response.status_code) + "\n" + dataset_response.text + "\n")
         try:
           dataset_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -125,12 +125,15 @@ def __main__():
         # Call the IRODS rest service to drop a flag into the IRODS workspace landing zone.  This flag
         # triggers the IRODS PEP that unpacks the tarball and posts the event to Jenkins
         flag_response = send_request(REST_URL, export_file_root + ".txt", USER, PWD)
-        resultsFile.write("Flag - " + str(flag_response.status_code) + "\n" + flag_response.text + "\n")
+        #resultsFile.write("Flag - " + str(flag_response.status_code) + "\n" + flag_response.text + "\n")
         try:
           flag_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
           print >> sys.stderr, "Error: " + str(e)
           sys.exit(os.EX_IOERR)
+
+        resultsFile.write("Your dataset has been successfully exported to EuPathDB\n")
+        resultsFile.write("Please visit an appropriate EuPathDB site to view your dataset.")
 
       # Step out of the temp directory
       os.chdir(orig_path)
