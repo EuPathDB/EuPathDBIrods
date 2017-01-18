@@ -146,7 +146,11 @@ def send_request(url, export_file, user, password):
   headers = {"Accept": "application/json"}
   file = {"uploadFile": open(export_file, "rb")}
   auth = HTTPBasicAuth(user, password)
-  response = requests.post(request, auth=auth, headers=headers, files=file)
+  try:
+    response = requests.post(request, auth=auth, headers=headers, files=file)
+  except requests.exceptions.ConnectionError as e:
+    print >> sys.stderr, "Error: " + str(e)
+    sys.exit(os.EX_IOERR)
   return response
 
 # Creates a temporary directory such that removal is assured at end of program
