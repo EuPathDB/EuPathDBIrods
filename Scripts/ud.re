@@ -70,25 +70,26 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  *tarballPath = *fileDir ++ "/" ++ *fileName;
       *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	  writeLine("serverLog", "Unpacking $objPath to *userDatasetPath");
-  	  msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus):::msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+  	  msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
 	  writeLine("serverLog", "Unpacked *tarballPath successfully");
-	  
-	  # Remove the tarball following unpacking.
-	  msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
-	  writeLine("serverLog", "Removed *tarballPath tarball");
-	  
+
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
 	  
 	  # Add the uploaded timestamp to the dataset.json data object belonging to the newly added dataset
 	  acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
-	  
+
+	  # Assemble the line to be posted as an event and post it
 	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	  acPostEvent(*content);
+
+	  # Remove the tarball only if everything succeeds
+	  msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+	  writeLine("serverLog", "Removed *tarballPath tarball");
     }
 	else {
-	  # file name is mis-formatted, so toss.	
-	  msiDataObjUnlink("objPath=$tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+	  # file name is mis-formatted, so toss and email error report.
+	  msiSendMail("criswlawrence@gmail.com","IRODS acPostProcForPut","The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	}
 }
 
