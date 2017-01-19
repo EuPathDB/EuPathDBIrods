@@ -4,6 +4,7 @@
   <inputs>
     <param name="dataset_name" type="text" value="" label="EuPathDB dataset name:" help="This name will allow you to readily identify this dataset in EuPathDB">
       <validator type="empty_field" />
+      <validator type="regex" message="Only letters, numbers, spaces and dashes are allowed in the name">^[\w\d\s\-]*$</validator>
     </param>
     <param name="summary" type="text" value="" label="EuPathDB dataset summary:" help="This summary will appear in your EuPathDB dataset listing" >
       <validator type="empty_field" />
