@@ -2,15 +2,30 @@
   <description>Export a gene list to EuPathDB</description>
   <command interpreter="python">exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$project" "$input" "$output" "$__user_id__"</command>
   <inputs>
-    <param name="dataset_name" type="text" value="" label="EuPathDB dataset name:" help="This name will allow you to readily identify this dataset in EuPathDB">
+    <param name="dataset_name" type="text" size="100" value=""
+           label="EuPathDB dataset name:"
+           help="This name will allow you to readily identify and apply this dataset in EuPathDB">
       <validator type="empty_field" />
-      <validator type="regex" message="Only letters, numbers, spaces and dashes are allowed in the name">^[\w\d\s\-]*$</validator>
+      <validator type="regex" message="Only letters, numbers, spaces and dashes are allowed in the name.">^[\w\d\s\-]*$</validator>
+      <validator type="length" message="Please restrict the name to 100 characters or less." max="100" />
     </param>
-    <param name="summary" type="text" value="" label="EuPathDB dataset summary:" help="This summary will appear in your EuPathDB dataset listing" >
+    <param name="summary" type="text" value=""
+           label="EuPathDB dataset summary:"
+           help="This summary will appear in your EuPathDB dataset listing page" >
       <validator type="empty_field" />
     </param>
-    <param name="description" type="text" value="" label="EuPathDB dataset description:" help="This description is visible on the EuPathDB dataset page" >
+    <param name="description" type="text" value="" area="True"
+           label="EuPathDB dataset description:"
+           help="This description is visible on the EuPathDB dataset page reached via the dataset listing page" >
       <validator type="empty_field" />
+      <sanitizer>
+        <valid initial="string.printable">
+          <remove value="&quot;"/>
+        </valid>
+        <mapping initial="none">
+          <add source="&quot;" target="'"/>
+        </mapping>
+      </sanitizer>
     </param>
     <param name="project" type="select" label="Relevant EuPathDB project:">
       <option value="plasmoDB">PlasmoDB</option>
@@ -36,6 +51,8 @@
       <param name="summary" value="A sample dataset summary"/>
       <param name="description" value="A sample dataset description" />
       <param name="project" value="plasmoDB" />
+      <param name="input" value="genelist.txt" ftype="txt" />
+      <output name="output" file="output.txt" ftype="txt" />
     </test>
   </tests>
 

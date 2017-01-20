@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 
 import optparse
-from json import dump
+import json
 import tempfile
 import time
 import os
@@ -75,14 +75,14 @@ def __main__():
 
       # Create and populate the meta.json file that must be included in the tarball
       with open(temp_path + "/" + META_JSON, "w+") as metaFile:
-        dump({'name': dataset_name,
-              'description': description,
-              'summary': summary}, metaFile, indent=4)
+        json.dump({"name": dataset_name,
+              "description": description,
+              "summary": summary}, metaFile, indent=4)
 
       # Create and populate the dataset.json file that must be included in the tarball
       # Don't know what the proper dependencies (if any) should be here
       with open(temp_path + "/" + DATASET_JSON, "w+") as datasetFile:
-        dump({
+        json.dump({
           "type": {"name": GENE_LIST_TYPE, "version": "1.0"},
            "dependencies":
              [{"resourceIdentifier": "pf3d7_genome_rsrc",
