@@ -1,6 +1,11 @@
 <tool id="exportGeneListToEuPathDB" name="Gene List to EuPathDB" version="1.0.0">
   <description>Export a gene list to EuPathDB</description>
-  <command interpreter="python">exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$project" "$input" "$output" "$__user_id__"</command>
+  <stdio>
+    <exit_code range="74" level="fatal" description="IRODS Rest Service Failure" />
+  </stdio>
+  <command>
+    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$project" "$input" "$output" "$user_id"
+  </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
            label="EuPathDB dataset name:"
@@ -11,12 +16,20 @@
     </param>
     <param name="summary" type="text" value=""
            label="EuPathDB dataset summary:"
-           help="This summary will appear in your EuPathDB dataset listing page" >
+           help="This summary will appear in your EuPathDB dataset listing page. Note that any double quotes will be coverted to single quotes">
       <validator type="empty_field" />
+      <sanitizer>
+        <valid initial="string.printable">
+          <remove value="&quot;"/>
+        </valid>
+        <mapping initial="none">
+          <add source="&quot;" target="'"/>
+        </mapping>
+      </sanitizer>
     </param>
     <param name="description" type="text" value="" area="True"
            label="EuPathDB dataset description:"
-           help="This description is visible on the EuPathDB dataset page reached via the dataset listing page" >
+           help="This description is visible on the EuPathDB dataset page reached via the dataset listing page.  Note that any double quotes will be coverted to single quotes" >
       <validator type="empty_field" />
       <sanitizer>
         <valid initial="string.printable">
@@ -38,21 +51,22 @@
     <param name="input" type="data" format="txt" label="Gene list to export:" >
       <validator type="empty_dataset" />
     </param>
+    <param name="user_id" type="hidden" value="$__user_id__" />
   </inputs>
   <outputs>
       <data format="txt" name="output" label="exportToEuPathDBInfo.txt" />
   </outputs>
-  <stdio>
-    <exit_code range="74" level="fatal" description="IRODS Rest Service Failure" />
-  </stdio>
   <tests>
+    <!-- Haven't been able to get this to work using planemo t -->
     <test>
       <param name="datasetName" value="Sample Dataset"/>
       <param name="summary" value="A sample dataset summary"/>
       <param name="description" value="A sample dataset description" />
       <param name="project" value="plasmoDB" />
-      <param name="input" value="genelist.txt" ftype="txt" />
-      <output name="output" file="output.txt" ftype="txt" />
+      <param name="input" value="genelist.txt" />
+      <output name="output" file="output.txt" />
+      <!-- user id for Cris -->
+      <param name="user_id" value="108976930" />
     </test>
   </tests>
 
@@ -60,8 +74,8 @@
 
 **What it does**
 
-This tool obtains a gene list and from that, creates a valid EuPathDB dataset that may be exported to one or
-more EuPathDB projects.
+This tool obtains a gene list and from that, creates a valid EuPathDB dataset that will be exported to one or
+more EuPathDB projects as per the user's project selection.
 
 You need to provide a name for the dataset so that you may easily identify it in EuPathDB websites, along with
 a description and a summary, the project to which the dataset applies and of course, a gene list. All inputs are
@@ -80,8 +94,13 @@ Here is an example of a properly filled in form:
 .. class:: warningmark
 
 We recommend that the user only supply one dataset file at a time. The tool can run in batch mode,
-but the datasets could be very difficult to distinguish in EuPath as all the other parameters above
+but the datasets could be very difficult to distinguish in EuPathDB as all the other parameters above
 will apply to every dataset.
 
 </help>
+<citations>
+  <citation type="doi">
+    10.1093/nar/gkw1105
+  </citation>
+</citations>
 </tool>
