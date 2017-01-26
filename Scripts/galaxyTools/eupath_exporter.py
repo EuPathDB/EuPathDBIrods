@@ -25,7 +25,7 @@ class Export:
     DATAFILES = "datafiles"
 
     def __init__(self, dataset_type, version, validation_script, user_id, dataset_name,
-                 dataset_summary, dataset_description, status_file):
+                 dataset_summary, dataset_description, tool_directory):
         """
         Initializes the export class with the parameters needed to accomplish the export of user
         datasets on Galaxy to EuPathDB projects.
@@ -36,7 +36,7 @@ class Export:
         :param dataset_name: The name the user has selected for this dataset to be exported
         :param dataset_summary: A summary of the dataset
         :param dataset_description: A fuller characterization of the dataset
-        :param status_file: The status file
+        :param tool_directory: The tool directory (where validation scripts should also live
         """
         self._type = dataset_type
         self._version = version
@@ -45,7 +45,7 @@ class Export:
         self._dataset_name = dataset_name
         self._summary = dataset_summary
         self._description = dataset_description
-        self._status_file = status_file
+        self._tool_directory = tool_directory
 
         # This msec timestamp is used to denote both the created and modified times.
         self._timestamp = int(time.time() * 1000)
@@ -72,11 +72,20 @@ class Export:
                 "passWORD")
 
     def validate_datasets(self):
+        """
+        Runs the validation script provided to the class upon initialization using the user's
+        dataset files as standard input.
+        :return:
+        """
         dataset_files = self.identify_dataset_files()
-        print "dataset files: %s", dataset_files
-        session = Popen(['python', self._validation_script],
-                        stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        print session.communicate(json.dumps(dataset_files))
+
+        validation_process = Popen(['python', self._tool_directory + "/" + self._validation_script],
+                                    stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        # output is a tuple containing (stdout, stderr)
+        output = validation_process.communicate(json.dumps(dataset_files))
+        if validation_process.returncode == os.EX_DATAERR:
+            raise ValidationException(output[1])
+
 
     def identify_dependencies(self):
         """
@@ -153,7 +162,6 @@ class Export:
         """
         os.mkdir(temp_path + "/" + self.DATAFILES)
         for dataset_file in self.identify_dataset_files():
-            print "dataset_file: %s and %s" % (dataset_file['name'],dataset_file['path'])
             shutil.copy(dataset_file['path'], temp_path + "/" + self.DATAFILES + "/" + dataset_file['name'])
 
     def create_tarball(self):
@@ -204,11 +212,7 @@ class Export:
         """
 
         # Apply the validation first.  If it fails, exit with a data error.
-        #try:
-        #    self.validate_datasets()
-        #except Exception as e:
-        #    print >> sys.stderr, "Error: " + str(e)
-        #    sys.exit(os.EX_DATAERR)
+        self.validate_datasets()
 
         orig_path = os.getcwd()
 
@@ -224,20 +228,19 @@ class Export:
             self.create_dataset_json_file(temp_path)
             self.create_tarball()
 
-            # The status file contains the information to be returned to the Galaxy user
-            with open(self._status_file, "w+") as status_file:
-                # Call the iRODS rest service to drop the tarball into the iRODS workspace landing zone
-                self.process_request(self._export_file_root + ".tgz")
 
-                # Create a empty (flag) file corresponding to the tarball
-                open(self._export_file_root + ".txt", "w").close()
+            # Call the iRODS rest service to drop the tarball into the iRODS workspace landing zone
+            self.process_request(self._export_file_root + ".tgz")
 
-                # Call the iRODS rest service to drop a flag into the IRODS workspace landing zone.  This flag
-                # triggers the iRODS PEP that unpacks the tarball and posts the event to Jenkins
-                self.process_request(self._export_file_root + ".txt")
+            # Create a empty (flag) file corresponding to the tarball
+            open(self._export_file_root + ".txt", "w").close()
 
-                status_file.write("Your dataset has been successfully exported to EuPathDB\n")
-                status_file.write("Please visit an appropriate EuPathDB site to view your dataset.")
+            # Call the iRODS rest service to drop a flag into the IRODS workspace landing zone.  This flag
+            # triggers the iRODS PEP that unpacks the tarball and posts the event to Jenkins
+            self.process_request(self._export_file_root + ".txt")
+
+            print "Your dataset has been successfully exported to EuPathDB\n"
+            print "Please visit an appropriate EuPathDB site to view your dataset."
 
             # We exit the temporary directory prior to removing it.
             os.chdir(orig_path)
@@ -255,3 +258,7 @@ class Export:
             yield temp_path
         finally:
             shutil.rmtree(temp_path)
+
+
+class ValidationException(Exception):
+    pass

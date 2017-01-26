@@ -5,7 +5,7 @@
     <exit_code range="74" level="fatal" description="iRODS Rest Service Failure" />
   </stdio>
   <command>
-    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$output" "$user_id"
+    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"
   </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
@@ -19,6 +19,10 @@
            label="EuPathDB dataset summary:"
            help="This summary will appear in your EuPathDB dataset listing page. Note that any double quotes will be coverted to single quotes">
       <validator type="empty_field" />
+      <!--
+        The summary may have any printable character with the exception that double quotes must be
+        translated into single quotes since this value will be embedded in a json object
+      -->
       <sanitizer>
         <valid initial="string.printable">
           <remove value="&quot;"/>
@@ -32,6 +36,10 @@
            label="EuPathDB dataset description:"
            help="This description is visible on the EuPathDB dataset page reached via the dataset listing page.  Note that any double quotes will be coverted to single quotes" >
       <validator type="empty_field" />
+      <!--
+        The description may have any printable character with the exception that double quotes must be
+        translated into single quotes since this value will be embedded in a json object
+      -->
       <sanitizer>
         <valid initial="string.printable">
           <remove value="&quot;"/>
