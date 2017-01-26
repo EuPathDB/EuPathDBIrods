@@ -1,10 +1,11 @@
 <tool id="exportGeneListToEuPathDB" name="Gene List to EuPathDB" version="1.0.0">
   <description>Export a gene list to EuPathDB</description>
   <stdio>
-    <exit_code range="74" level="fatal" description="IRODS Rest Service Failure" />
+    <exit_code range="65" level="fatal" description="Dataset Validation Failure" />
+    <exit_code range="74" level="fatal" description="iRODS Rest Service Failure" />
   </stdio>
   <command>
-    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$project" "$input" "$output" "$user_id"
+    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$output" "$user_id"
   </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
@@ -39,10 +40,6 @@
           <add source="&quot;" target="'"/>
         </mapping>
       </sanitizer>
-    </param>
-    <param name="project" type="select" label="Relevant EuPathDB project:">
-      <option value="plasmoDB">PlasmoDB</option>
-      <option value="toxoDB">ToxoDB</option>
     </param>
     <!--
      multiple = false by default.  If the user select N files, the tool runs N times.  This is
