@@ -61,9 +61,10 @@ class Export:
 
     def collect_rest_data(self):
         """
-        Obtains the url and credentials needed to run the iRODS rest service.  At some point, this
-        information should be fished out of a configuration file.
-        :return:  A tuple containing the url, user, and password in that order
+        Obtains the url and credentials and relevant collections needed to run the iRODS rest service.
+        At some point, this information should be fished out of a configuration file.
+        :return:  A tuple containing the url, user, and password, landing zone and flags collection,
+         in that order
         """
         # TODO host, port, username and password will need to go into a configuration file somehow
         # TODO protocol should be SSL
@@ -177,6 +178,7 @@ class Export:
         """
         This method wraps the iRODS rest request into a try/catch to insure that bad responses are
         reflected back to the user.
+        :param collection: the name of the workspaces collection to which the file is to be uploaded
         :param source_file: the name of the file to be uploaded to iRODS
         """
         rest_response = self.send_request(collection, source_file)
@@ -191,6 +193,7 @@ class Export:
         This request is intended as a multi-part form post containing one file to be uploaded.  iRODS Rest
         does an iput followed by an iget, apparently.  So the response can be used to insure proper
         delivery.
+        :param collection: the name of the workspaces collection to which the file is to be uploaded
         :param source_file: the name of the file to be uploaded to iRODS
         :return: the http response from an iget of the uploaded file
         """
