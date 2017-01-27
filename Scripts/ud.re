@@ -69,9 +69,11 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  # unpack the tarball under the user datasets folder using the data id as the dataset id.	
 	  *tarballPath = *fileDir ++ "/" ++ *fileName;
       *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	  writeLine("serverLog", "Unpacking $objPath to *userDatasetPath");
+	  writeLine("serverLog", "Unpacking *fileName to *userDatasetPath");
   	  msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
 	  writeLine("serverLog", "Unpacked *tarballPath successfully");
+
+	  acCheckUserWorkspaceUsed(*userId)
 
 	  # Fabricate an event.
 	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
@@ -140,6 +142,15 @@ acPostEvent(*eventContent) {
   acTriggerEvent();
 }
 
+acCheckUserWorkspaceUsed(*userId) {
+  *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
+  *collectionSize = 0;
+	foreach(*result in *results) {
+	  *collectionSize = *result.DATA_SIZE;
+	}
+  writeLine("serverLog", "Collection size: *collectionSize");
+}
+
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
 # an event data object.  The single line posted to the event object is composed as follows:
 # content:  uninstall projects user_dataset_id ud_type_name ud_type_version
@@ -161,8 +172,8 @@ acGetDatasetJsonContent(*userDatasetPath, *content) {
 	*DatasetConfigPath = "*userDatasetPath/dataset.json";
 	*results = SELECT DATA_SIZE WHERE COLL_NAME = *userDatasetPath AND DATA_NAME = 'dataset.json';
 	*fileSize = 0;
-	foreach(*results) {
-	  *fileSize = *results.DATA_SIZE;
+	foreach(*result in *results) {
+	  *fileSize = *result.DATA_SIZE;
 	}
 	writeLine("serverLog", "File size: *fileSize");
 	writeLine("serverLog", "Dataset conf path is *DatasetConfigPath");

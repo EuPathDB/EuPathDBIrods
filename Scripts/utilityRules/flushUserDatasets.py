@@ -41,6 +41,10 @@ def __main__():
   session = Popen(['irule','-F', rule])
   print session.communicate()
 
+  rule = "%s/%s" % (utilityFileFolder, "emptyFlagsCollection.r")
+  session = Popen(['irule', '-F', rule])
+  print session.communicate()
+
   rule = "%s/%s" % (utilityFileFolder, "deleteDatasets.r")
   session = Popen(['irule', '-F', rule])
   print session.communicate()
