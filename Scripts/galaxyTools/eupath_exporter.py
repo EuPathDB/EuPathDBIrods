@@ -57,7 +57,7 @@ class Export:
         self._export_file_root = 'dataset_u' + self._user_id + '_t' + str(self._timestamp)
 
         # Set up the configuration data
-        (self._url, self._user, self._pwd) = self.collect_rest_data()
+        (self._url, self._user, self._pwd, self._lz_coll, self._flag_coll) = self.collect_rest_data()
 
     def collect_rest_data(self):
         """
@@ -67,9 +67,10 @@ class Export:
         """
         # TODO host, port, username and password will need to go into a configuration file somehow
         # TODO protocol should be SSL
-        return ("http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/lz/",
+        return ("http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/",
                 "wrkspuser",
-                "passWORD")
+                "passWORD",
+                "lz", "flags")
 
     def validate_datasets(self):
         """
@@ -172,20 +173,20 @@ class Export:
             for item in [self.META_JSON, self.DATASET_JSON, self.DATAFILES]:
                 tarball.add(item)
 
-    def process_request(self, source_file):
+    def process_request(self, collection, source_file):
         """
         This method wraps the iRODS rest request into a try/catch to insure that bad responses are
         reflected back to the user.
         :param source_file: the name of the file to be uploaded to iRODS
         """
-        rest_response = self.send_request(source_file)
+        rest_response = self.send_request(collection, source_file)
         try:
             rest_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print >> sys.stderr, "Error: " + str(e)
             sys.exit(os.EX_IOERR)
 
-    def send_request(self, source_file):
+    def send_request(self, collection, source_file):
         """
         This request is intended as a multi-part form post containing one file to be uploaded.  iRODS Rest
         does an iput followed by an iget, apparently.  So the response can be used to insure proper
@@ -193,7 +194,7 @@ class Export:
         :param source_file: the name of the file to be uploaded to iRODS
         :return: the http response from an iget of the uploaded file
         """
-        request = self._url + source_file
+        request = self._url + collection + "/" + source_file
         headers = {"Accept": "application/json"}
         upload_file = {"uploadFile": open(source_file, "rb")}
         auth = HTTPBasicAuth(self._user, self._pwd)
@@ -228,14 +229,14 @@ class Export:
             self.create_tarball()
 
             # Call the iRODS rest service to drop the tarball into the iRODS workspace landing zone
-            self.process_request(self._export_file_root + ".tgz")
+            self.process_request(self._lz_coll, self._export_file_root + ".tgz")
 
             # Create a empty (flag) file corresponding to the tarball
             open(self._export_file_root + ".txt", "w").close()
 
-            # Call the iRODS rest service to drop a flag into the IRODS workspace landing zone.  This flag
+            # Call the iRODS rest service to drop a flag into the IRODS workspace flags collection.  This flag
             # triggers the iRODS PEP that unpacks the tarball and posts the event to Jenkins
-            self.process_request(self._export_file_root + ".txt")
+            self.process_request(self._flag_coll, self._export_file_root + ".txt")
 
             print "Your dataset has been successfully exported to EuPathDB\n"
             print "Please visit an appropriate EuPathDB site to view your dataset."

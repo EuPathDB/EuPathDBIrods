@@ -9,9 +9,9 @@ acPostProcForPut {
 	writeLine("serverLog", "PEP acPostProcForPut - $objPath");
 	msiSplitPath($objPath, *fileDir, *fileName);
 	# if a properly composed txt file is put into the landing zone, find the corresponding tarball and upack it.
-	if(*fileDir == "/ebrc/workspaces/lz" && *fileName like regex "dataset_u.*_t.*[.]txt") then {
+	if(*fileDir == "/ebrc/workspaces/flags" && *fileName like regex "dataset_u.*_t.*[.]txt") then {
 		*tarballName = trimr(*fileName,".") ++ ".tgz";
-		acLandingZonePostProcForPut(*fileDir, *tarballName);
+		acLandingZonePostProcForPut("/ebrc/workspaces/lz", *tarballName);
 	}
 	# if a file is put into the sharedWith directory of a dataset, report it
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
