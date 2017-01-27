@@ -80,12 +80,11 @@ class Export:
         dataset_files = self.identify_dataset_files()
 
         validation_process = Popen(['python', self._tool_directory + "/" + self._validation_script],
-                                    stdin=PIPE, stdout=PIPE, stderr=PIPE)
+                                   stdin=PIPE, stdout=PIPE, stderr=PIPE)
         # output is a tuple containing (stdout, stderr)
         output = validation_process.communicate(json.dumps(dataset_files))
         if validation_process.returncode == os.EX_DATAERR:
             raise ValidationException(output[1])
-
 
     def identify_dependencies(self):
         """
@@ -228,7 +227,6 @@ class Export:
             self.create_dataset_json_file(temp_path)
             self.create_tarball()
 
-
             # Call the iRODS rest service to drop the tarball into the iRODS workspace landing zone
             self.process_request(self._export_file_root + ".tgz")
 
@@ -261,4 +259,8 @@ class Export:
 
 
 class ValidationException(Exception):
+    """
+    This represents the exception reported when a call to a validation script returns a data error
+    (sys exit 65)
+    """
     pass

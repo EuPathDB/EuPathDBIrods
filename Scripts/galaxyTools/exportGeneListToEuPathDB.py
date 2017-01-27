@@ -7,7 +7,7 @@ import sys
 import os
 
 
-def __main__():
+def main():
     """
       The following program is a Galaxy Tool for exporting gene list data from Galaxy to EuPathDB via iRODS.
 
@@ -31,7 +31,6 @@ def __main__():
 
     reference_genome = "This is a ref genome for now"
 
-
     # Create and populate the meta.json file that must be included in the tarball
     exporter = eupath_genelist_exporter.GeneListExport(dataset_file_path,
                                                        reference_genome,
@@ -41,10 +40,11 @@ def __main__():
                                                        description,
                                                        tool_directory)
     try:
-      exporter.export()
+        exporter.export()
     except eupath_exporter.ValidationException as ve:
-      print str(ve)
-      sys.exit(os.EX_DATAERR)
+        print str(ve)
+        sys.exit(os.EX_DATAERR)
 
 
-if __name__ == "__main__": __main__()
+if __name__ == "__main__":
+    sys.exit(main())
