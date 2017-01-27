@@ -66,32 +66,39 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*userId = trimr(triml(*fileName,"_u"),"_t");  #expect file name in format dataset_u\d+_t\d+.tgz
 	# insure the the user id is a positive number
 	if(int(*userId) > 0) {
-	  # unpack the tarball under the user datasets folder using the data id as the dataset id.	
-	  *tarballPath = *fileDir ++ "/" ++ *fileName;
-      *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	  writeLine("serverLog", "Unpacking *fileName to *userDatasetPath");
-  	  msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
-	  writeLine("serverLog", "Unpacked *tarballPath successfully");
+	    # unpack the tarball under the user datasets folder using the data id as the dataset id.
+	    *tarballPath = *fileDir ++ "/" ++ *fileName;
+        *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
+	    writeLine("serverLog", "Unpacking *fileName to *userDatasetPath");
+  	    msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
+	    writeLine("serverLog", "Unpacked *tarballPath successfully");
 
-	  acCheckUserWorkspaceUsed(*userId)
+	    acCheckUserWorkspaceUsed(*userId, *overQuota)
+	    if(*overQuota) {
+	        writeLine("serverLog", "The user is over quota");
+	    }
 
-	  # Fabricate an event.
-	  acGetDatasetJsonContent(*userDatasetPath, *pairs)
+  	    # Fabricate an event.
+	    acGetDatasetJsonContent(*userDatasetPath, *pairs)
 	  
-	  # Add the uploaded timestamp to the dataset.json data object belonging to the newly added dataset
-	  acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
+	    # Add the uploaded timestamp to the dataset.json data object belonging to the newly added dataset
+	    acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
 
-	  # Assemble the line to be posted as an event and post it
-	  *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
-	  acPostEvent(*content);
+  	    # Assemble the line to be posted as an event and post it
+	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
+	    acPostEvent(*content);
 
-	  # Remove the tarball only if everything succeeds
-	  msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
-	  writeLine("serverLog", "Removed *tarballPath tarball");
+	    # Remove the tarball only if everything succeeds
+	    msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
+	    writeLine("serverLog", "Removed *tarballPath tarball");
+
+	    # Write out a success message
+	    *message = "tarball *fileName upacked to *userDatasetPath and event posted\n";
+	    acCreateCompletedFlag(trimr(*fileName,"."), *message, "success")
     }
 	else {
-	  # file name is mis-formatted, so toss and email error report.
-	  msiSendMail("criswlawrence@gmail.com","IRODS acPostProcForPut","The tarball filename, *fileName was mis-formatted.  No event was posted.");
+	    # file name is mis-formatted, so toss and email error report.
+	    msiSendMail("criswlawrence@gmail.com","IRODS acPostProcForPut","The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	}
 }
 
@@ -142,13 +149,27 @@ acPostEvent(*eventContent) {
   acTriggerEvent();
 }
 
-acCheckUserWorkspaceUsed(*userId) {
-  *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
-  *collectionSize = 0;
+acCheckUserWorkspaceUsed(*userId, *overQuota) {
+    *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
+    *collectionSize = 0;
 	foreach(*result in *results) {
 	  *collectionSize = *result.DATA_SIZE;
 	}
-  writeLine("serverLog", "Collection size: *collectionSize");
+    writeLine("serverLog", "Collection size: *collectionSize");
+
+    *results = SELECT DATA_SIZE WHERE COLL_NAME = '/ebrc/workspaces/users' AND DATA_NAME = 'default_quota';
+	*fileSize = 0;
+	foreach(*result in *results) {
+	  *fileSize = *result.DATA_SIZE;
+	}
+	writeLine("serverLog", "Quota file size is *fileSize")
+	*quotaFile = "/ebrc/workspaces/users/default_quota";
+    msiDataObjOpen("objPath=*quotaFile++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
+	msiDataObjRead(*fileDescriptor,*fileSize, *quotaData);
+	msiStrchop(str(*quotaData),*quota);
+	writeLine("serverLog", "Quota size: *quota");
+	*overQuota = int(*collectionSize) > int(*quota)
+	msiDataObjClose(*fileDescriptor,*fileStatus);
 }
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
@@ -211,4 +232,15 @@ acTriggerEvent() {
     msiExecCmd("executeJobFile.py",*argv,"null","null","null",*Result);
     msiGetStdoutInExecCmdOut(*Result,*Out);
 	writeLine("serverLog", *Out);
+}
+
+acCreateCompletedFlag(*identifier, *message, *outcome) {
+    writeLine("serverLog","Inside acCreateCompletedFlag");
+    *statusFile = *outcome ++ "_" ++ *identifier;
+    writeLine("serverLog", "Status file *statusFile");
+    *statusFilePath = "/ebrc/workspaces/flags/*statusFile";
+    writeLine("serverLog", "New entry:  *statusFilePath");
+    msiDataObjCreate(*statusFilePath,"forceFlag=",*fileDescriptor);
+    msiDataObjWrite(*fileDescriptor,*message,*fileSize);
+    msiDataObjClose(*fileDescriptor,*fileStatus);
 }
