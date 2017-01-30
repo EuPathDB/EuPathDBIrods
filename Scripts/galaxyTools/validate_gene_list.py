@@ -26,6 +26,6 @@ def __main__():
                 error = "No lines in a gene list file should contain embedded whitespace."
     if error is not None:
         print >> sys.stderr, "Error: " + error
-        sys.exit(os.EX_DATAERR)
+        sys.exit(1)
 
 if __name__ == "__main__": __main__()

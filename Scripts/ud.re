@@ -40,12 +40,16 @@ acPostProcForDelete {
 	}
 }
 
-# Custom event hook for user dataset pre-processiong preceeding an irm of a collection
+# Custom event hook for user dataset pre-processiong preceding an irm of a collection
 acPreprocForRmColl {
     writeLine("serverLog", "PEP acPreprocForRmColl - $collName");
-    *FlushFilePath = "/ebrc/workspaces/flushMode";
-    msiDataObjOpen("objPath=*FlushFilePath++++replNum=0++++openFlags=O_RDONLY", *flushFileDescriptor);
-    if(flushFileDescriptor < 0 && $collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
+    *results = SELECT COUNT(DATA_ID) WHERE COLL_NAME = '/ebrc/workspaces' AND DATA_NAME = 'flushMode';
+	*count = 0;
+	foreach(*result in *results) {
+	  *count = int(*result.DATA_ID);
+	  writeLine("serverLog","Count *count");
+	}
+    if(*count == 0 && $collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
 	  acDatasetPreprocForRmColl();
 	}
 }
@@ -66,22 +70,29 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*userId = trimr(triml(*fileName,"_u"),"_t");  #expect file name in format dataset_u\d+_t\d+.tgz
 	# insure the the user id is a positive number
 	if(int(*userId) > 0) {
+
+        # check user's workspace consumption and proceed only if under quota.
+        acGetDefaultQuota(*defaultQuota);
+	    acGetWorkspaceUsed(*userId, *collectionSize);
+	    if(*collectionSize > *defaultQuota) {
+	        *quotaMegabytes = *defaultQuota/1000000;
+	        *message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
+	        acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	        msiGoodFailure;
+	    }
+
+	    #TODO - get size of tarball
+
 	    # unpack the tarball under the user datasets folder using the data id as the dataset id.
 	    *tarballPath = *fileDir ++ "/" ++ *fileName;
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	    writeLine("serverLog", "Unpacking *fileName to *userDatasetPath");
   	    msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
-	    writeLine("serverLog", "Unpacked *tarballPath successfully");
-
-	    acCheckUserWorkspaceUsed(*userId, *overQuota)
-	    if(*overQuota) {
-	        writeLine("serverLog", "The user is over quota");
-	    }
 
   	    # Fabricate an event.
 	    acGetDatasetJsonContent(*userDatasetPath, *pairs)
 	  
-	    # Add the uploaded timestamp to the dataset.json data object belonging to the newly added dataset
+	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset
 	    acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
 
   	    # Assemble the line to be posted as an event and post it
@@ -94,7 +105,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 
 	    # Write out a success message
 	    *message = "tarball *fileName upacked to *userDatasetPath and event posted\n";
-	    acCreateCompletedFlag(trimr(*fileName,"."), *message, "success")
+	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
     }
 	else {
 	    # file name is mis-formatted, so toss and email error report.
@@ -149,27 +160,25 @@ acPostEvent(*eventContent) {
   acTriggerEvent();
 }
 
-acCheckUserWorkspaceUsed(*userId, *overQuota) {
+# Returns the integer size, in bytes, of the datasets currently in the user's workspace.
+acGetWorkspaceUsed(*userId, *collectionSize) {
     *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
     *collectionSize = 0;
 	foreach(*result in *results) {
-	  *collectionSize = *result.DATA_SIZE;
+	  *collectionSize = int(*result.DATA_SIZE);
 	}
-    writeLine("serverLog", "Collection size: *collectionSize");
+}
 
-    *results = SELECT DATA_SIZE WHERE COLL_NAME = '/ebrc/workspaces/users' AND DATA_NAME = 'default_quota';
-	*fileSize = 0;
-	foreach(*result in *results) {
-	  *fileSize = *result.DATA_SIZE;
-	}
-	writeLine("serverLog", "Quota file size is *fileSize")
-	*quotaFile = "/ebrc/workspaces/users/default_quota";
-    msiDataObjOpen("objPath=*quotaFile++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
-	msiDataObjRead(*fileDescriptor,*fileSize, *quotaData);
-	msiStrchop(str(*quotaData),*quota);
-	writeLine("serverLog", "Quota size: *quota");
-	*overQuota = int(*collectionSize) > int(*quota)
-	msiDataObjClose(*fileDescriptor,*fileStatus);
+# Returns the integer default quota size in bytes.  The assumption is this file contains only a number (digits only)
+# in bytes, followed by a newline.
+acGetDefaultQuota(*defaultQuota) {
+    *quotaFile = "/ebrc/workspaces/users/default_quota";
+    acGetDataObjectSize(*quotaFile, *quotaFileSize)
+    msiDataObjOpen("objPath=*quotaFile++++replNum=0++++openFlags=O_RDONLY", *quotaFileDescriptor);
+	msiDataObjRead(*quotaFileDescriptor, *quotaFileSize, *quotaData);
+	msiStrchop(str(*quotaData), *defaultQuota);
+	msiDataObjClose(*quotaFileDescriptor, *quotaFileStatus);
+	*defaultQuota = int(*defaultQuota);
 }
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
@@ -190,24 +199,19 @@ acDatasetPreprocForRmColl() {
 # TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
 # concerns.
 acGetDatasetJsonContent(*userDatasetPath, *content) {
-	*DatasetConfigPath = "*userDatasetPath/dataset.json";
-	*results = SELECT DATA_SIZE WHERE COLL_NAME = *userDatasetPath AND DATA_NAME = 'dataset.json';
-	*fileSize = 0;
-	foreach(*result in *results) {
-	  *fileSize = *result.DATA_SIZE;
-	}
-	writeLine("serverLog", "File size: *fileSize");
-	writeLine("serverLog", "Dataset conf path is *DatasetConfigPath");
-	msiDataObjOpen("objPath=*DatasetConfigPath++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
-	msiDataObjRead(*fileDescriptor,*fileSize,*datasetData);
+	*datasetConfigFile = "*userDatasetPath/dataset.json";
+	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
+	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
+	msiDataObjRead(*datasetConfigFileDescriptor, *datasetConfigFileSize, *datasetConfigData);
 	# Escapes the double quotes so that the content is transmitted as an intact single string.
-	*DatasetDataArg = execCmdArg(str(*datasetData));
-	msiDataObjClose(*fileDescriptor,*closeStatus);
-	msiExecCmd("datasetParser.py", *DatasetDataArg,"null","null","null",*Result);
-	msiGetStdoutInExecCmdOut(*Result,*Out);
-	msiString2KeyValPair(*Out, *content);
+	*datasetConfigDataArg = execCmdArg(str(*datasetConfigData));
+	msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
+	msiExecCmd("datasetParser.py", *datasetConfigDataArg,"null","null","null",*datasetConfigResult);
+	msiGetStdoutInExecCmdOut(*datasetConfigResult, *out);
+	msiString2KeyValPair(*out, *content);
 }
 
+# The dataset configuration file is re-written to include
 acOverwriteDatasetJsonContent(*userDatasetPath, *content) {
   writeLine("serverLog", "Need to overwrite dataset.json with *content");
   *DatasetConfigPath = "*userDatasetPath/dataset.json";
@@ -217,30 +221,31 @@ acOverwriteDatasetJsonContent(*userDatasetPath, *content) {
 }
 
 acTriggerEvent() {
-	*jobFilePath = "/ebrc/workspaces";
-	*jobFileName = "jenkinsCommunicationConfig.txt";
-	*results = SELECT DATA_SIZE WHERE COLL_NAME = *jobFilePath AND DATA_NAME = *jobFileName;
-	*fileSize = 0;
-	foreach(*results) {
-	  *fileSize = *results.DATA_SIZE;
-	}
-	writeLine("serverLog", "File size: *fileSize");
-	msiDataObjOpen("objPath=*jobFilePath/*jobFileName++++replNum=0++++openFlags=O_RDONLY", *fileDescriptor);
-	msiDataObjRead(*fileDescriptor,*fileSize,*jobData);
+	*jobFile = "/ebrc/workspaces/jenkinsCommunicationConfig.txt";
+	acGetDataObjectSize(*jobFile, *jobFileSize);
+	msiDataObjOpen("objPath=*jobFile++++replNum=0++++openFlags=O_RDONLY", *jobFileDescriptor);
+	msiDataObjRead(*jobFileDescriptor, *jobFileSize, *jobData);
     *argv = str(*jobData);
 	writeLine("serverLog", "Passing *argv");
-    msiExecCmd("executeJobFile.py",*argv,"null","null","null",*Result);
-    msiGetStdoutInExecCmdOut(*Result,*Out);
-	writeLine("serverLog", *Out);
+    msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobResult);
+    msiGetStdoutInExecCmdOut(*jobResult, *out);
+	writeLine("serverLog", *out);
 }
 
-acCreateCompletedFlag(*identifier, *message, *outcome) {
-    writeLine("serverLog","Inside acCreateCompletedFlag");
+acCreateCompletionFlag(*identifier, *message, *outcome) {
     *statusFile = *outcome ++ "_" ++ *identifier;
-    writeLine("serverLog", "Status file *statusFile");
     *statusFilePath = "/ebrc/workspaces/flags/*statusFile";
-    writeLine("serverLog", "New entry:  *statusFilePath");
     msiDataObjCreate(*statusFilePath,"forceFlag=",*fileDescriptor);
     msiDataObjWrite(*fileDescriptor,*message,*fileSize);
     msiDataObjClose(*fileDescriptor,*fileStatus);
+}
+
+# Convenience method for getting the integer size in bytes of a data object
+acGetDataObjectSize(*dataObject, *dataObjectSize) {
+    msiSplitPath(*dataObject, *dataObjectPath, *dataObjectName);
+    *results = SELECT DATA_SIZE WHERE COLL_NAME = *dataObjectPath AND DATA_NAME = *dataObjectName;
+    *dataObjectSize = 0;
+	foreach(*results) {
+	  *dataObjectSize = int(*results.DATA_SIZE);
+	}
 }

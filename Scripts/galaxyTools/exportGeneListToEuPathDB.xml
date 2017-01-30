@@ -1,8 +1,7 @@
 <tool id="exportGeneListToEuPathDB" name="Gene List to EuPathDB" version="1.0.0">
   <description>Export a gene list to EuPathDB</description>
   <stdio>
-    <exit_code range="65" level="fatal" description="Dataset Validation Failure" />
-    <exit_code range="74" level="fatal" description="iRODS Rest Service Failure" />
+    <exit_code range="1" level="fatal" description="EuPathDB Export Failure" />
   </stdio>
   <command>
     python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"

@@ -85,7 +85,7 @@ class Export:
                                    stdin=PIPE, stdout=PIPE, stderr=PIPE)
         # output is a tuple containing (stdout, stderr)
         output = validation_process.communicate(json.dumps(dataset_files))
-        if validation_process.returncode == os.EX_DATAERR:
+        if validation_process.returncode == 1:
             raise ValidationException(output[1])
 
     def identify_dependencies(self):
@@ -186,7 +186,7 @@ class Export:
             rest_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print >> sys.stderr, "Error: " + str(e)
-            sys.exit(os.EX_IOERR)
+            sys.exit(1)
 
     def send_request(self, collection, source_file):
         """
@@ -203,10 +203,30 @@ class Export:
         auth = HTTPBasicAuth(self._user, self._pwd)
         try:
             response = requests.post(request, auth=auth, headers=headers, files=upload_file)
-        except requests.exceptions.ConnectionError as e:
+        except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
             print >> sys.stderr, "Error: " + str(e)
-            sys.exit(os.EX_IOERR)
+            sys.exit(1)
         return response
+
+    def get_flag(self, collection, source_file):
+        time.sleep(5)
+        auth = HTTPBasicAuth(self._user, self._pwd)
+        try:
+            request = self._url + collection + "/" + "success_" + source_file
+            success = requests.get(request, auth=auth, timeout=5)
+            if success.status_code == 404:
+                request = self._url + collection + "/" + "failure_" + source_file
+                failure = requests.get(request, auth=auth, timeout=5)
+                if failure.status_code != 404:
+                    raise TransferException(failure.content)
+                else:
+                    failure.raise_for_status()
+            else:
+                print >> sys.stdout, "Your dataset has been successfully exported to EuPathDB\n"
+                print >> sys.stdout, "Please visit an appropriate EuPathDB site to view your dataset."
+        except (requests.exceptions.ConnectionError, TransferException) as e:
+            print >> sys.stderr, "Error: " + str(e)
+            sys.exit(1)
 
     def export(self):
         """
@@ -241,8 +261,7 @@ class Export:
             # triggers the iRODS PEP that unpacks the tarball and posts the event to Jenkins
             self.process_request(self._flag_coll, self._export_file_root + ".txt")
 
-            print "Your dataset has been successfully exported to EuPathDB\n"
-            print "Please visit an appropriate EuPathDB site to view your dataset."
+            self.get_flag(self._flag_coll, self._export_file_root)
 
             # We exit the temporary directory prior to removing it.
             os.chdir(orig_path)
@@ -264,7 +283,13 @@ class Export:
 
 class ValidationException(Exception):
     """
-    This represents the exception reported when a call to a validation script returns a data error
-    (sys exit 65)
+    This represents the exception reported when a call to a validation script returns a data error.
+    """
+    pass
+
+
+class TransferException(Exception):
+    """
+    This represents the exception reported when the export of a dataset to the iRODS system returns a failure.
     """
     pass

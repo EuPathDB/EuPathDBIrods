@@ -43,7 +43,7 @@ def main():
         exporter.export()
     except eupath_exporter.ValidationException as ve:
         print str(ve)
-        sys.exit(os.EX_DATAERR)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
