@@ -67,61 +67,59 @@ acPostProcForCreate {
 # mechanism for making the file unique.  The tarball is unpacked in /ebrc/workspaces/users/<userId>/datasets<datasetId>
 # where the userId is extracted from the tarball name and the dataset id is the data id given by irods to this particular file.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
-	*userId = trimr(triml(*fileName,"_u"),"_t");  #expect file name in format dataset_u\d+_t\d+.tgz
+	*userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
+
 	# insure the the user id is a positive number
-	if(int(*userId) > 0) {
-
-        # check user's workspace consumption and proceed only if under quota.
-        writeLine("serverLog", "Checking whether user is already over quota.");
-        acGetDefaultQuota(*defaultQuota);
-	    acGetWorkspaceUsed(*userId, *collectionSize);
-	    *quotaMegabytes = *defaultQuota/1000000;
-	    *message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
-	    if(*collectionSize > *defaultQuota) {
-	        acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
-	        msiGoodFailure;
-	    }
-
-	    # check size of user's tarball so it if, even unpacked, it will put the user's workspace over quota
-	    writeLine("serverLog", "Checking whether user tarball will put user over quota.")
-	    *tarballFile = *fileDir ++ "/" ++ *fileName;
-	    acGetDataObjectSize(*tarballFile, *tarballSize);
-	    writeLine("serverLog", "The tarball size is *tarballSize");
-	    if(*tarballSize + *collectionSize > *defaultQuota) {
-	        acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
-	        msiGoodFailure;
-	    }
-
-	    # unpack the tarball under the user datasets folder using the data id as the dataset id.
-        *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	    writeLine("serverLog", "Unpacking *tarballFile to *userDatasetPath");
-  	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *UnpkStatus);
-
-  	    # Get the data needed to create an event from the dataset configuration file.
-  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
-	    acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
-	  
-	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
-	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
-	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent);
-
-  	    # Assemble the line to be posted as an event and post it
-  	    writeLine("serverLog", "Posting the new event.");
-	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
-	    acPostEvent(*content);
-
-	    # Remove the tarball only if everything succeeds
-	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*DelStatus);
-	    writeLine("serverLog", "Removed *tarballFile tarball");
-
-	    # Write out a success message
-	    *message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
-	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
-    }
-	else {
-	    # file name is mis-formatted, so toss and email error report.
-	    msiSendMail("criswlawrence@gmail.com","IRODS acPostProcForPut","The tarball filename, *fileName was mis-formatted.  No event was posted.");
+	if(*userId <= 0) {
+	    acFailCleanly(trimr(*fileName,"."), "IRODS acPostProcForPut", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	}
+
+    # check user's workspace consumption and proceed only if under quota.
+    writeLine("serverLog", "Checking whether user is already over quota.");
+    acGetDefaultQuota(*defaultQuota);
+	acGetWorkspaceUsed(*userId, *collectionSize);
+	*quotaMegabytes = *defaultQuota/1000000;
+	*message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
+	if(*collectionSize > *defaultQuota) {
+	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	    msiGoodFailure;
+	}
+
+	# check size of user's tarball so it if, even unpacked, it will put the user's workspace over quota
+	writeLine("serverLog", "Checking whether user tarball will put user over quota.")
+	*tarballFile = *fileDir ++ "/" ++ *fileName;
+	acGetDataObjectSize(*tarballFile, *tarballSize);
+	if(*tarballSize + *collectionSize > *defaultQuota) {
+	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	    msiGoodFailure;
+	}
+
+	# unpack the tarball under the user datasets folder using the data id as the dataset id.
+    *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
+	writeLine("serverLog", "Unpacking *tarballFile to *userDatasetPath");
+  	msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *UnpkStatus);
+
+  	# Get the data needed to create an event from the dataset configuration file.
+  	writeLine("serverLog", "Obtaining the dataset configuration file data.");
+	acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
+	  
+	# Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
+	writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
+	acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent);
+
+  	# Assemble the line to be posted as an event and post it
+  	writeLine("serverLog", "Posting the new event.");
+	*content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
+	acPostEvent(*content);
+
+	# Remove the tarball only if everything succeeds
+	msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*DelStatus);
+	writeLine("serverLog", "Removed *tarballFile tarball");
+
+	# Write out a success message
+	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
+	acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
+
 }
 
 # This action is called by the acPostProcForPut action whenever a data object with a name corresponding to a share
@@ -153,6 +151,35 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
     acPostEvent(*content);
 }
 
+# Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
+# an event data object.  The single line posted to the event object is composed as follows:
+# content:  uninstall projects user_dataset_id ud_type_name ud_type_version
+acDatasetPreprocForRmColl() {
+	msiSplitPath($collName, *parent, *datasetId);
+	acGetDatasetConfigFileContent($collName, *pairs);
+	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
+	acPostEvent(*content)
+}
+
+# Retrieves the dataset.json content in the form of key/value pairs that are digestable via the iRODS microservices.
+# *userDatasetPath - input - absolute path to the dataset of interest (/ebrc/workspaces/users/<userid>/datasets/<datasetid)
+# *content - output - a string containing key/value pairs
+# In addition to the dataset.json content and system timestamp in milliseconds is returned to provide a unique identifier
+# for any subsequent file holding this content
+# TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
+# concerns.
+acGetDatasetConfigFileContent(*userDatasetPath, *content) {
+	*datasetConfigFile = "*userDatasetPath/dataset.json";
+	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
+	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
+	msiDataObjRead(*datasetConfigFileDescriptor, *datasetConfigFileSize, *datasetConfigData);
+	# Escapes the double quotes so that the content is transmitted as an intact single string.
+	*datasetConfigDataArg = execCmdArg(str(*datasetConfigData));
+	msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
+	msiExecCmd("datasetParser.py", *datasetConfigDataArg,"null","null","null",*datasetConfigResult);
+	msiGetStdoutInExecCmdOut(*datasetConfigResult, *out);
+	msiString2KeyValPair(*out, *content);
+}
 
 # This rule posts the content provided to a new event data object in the events
 # collection.  The use of systemTime in the event data object name may not be sufficient
@@ -190,36 +217,6 @@ acGetDefaultQuota(*defaultQuota) {
 	msiStrchop(str(*quotaData), *defaultQuota);
 	msiDataObjClose(*quotaFileDescriptor, *quotaFileStatus);
 	*defaultQuota = int(*defaultQuota);
-}
-
-# Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
-# an event data object.  The single line posted to the event object is composed as follows:
-# content:  uninstall projects user_dataset_id ud_type_name ud_type_version
-acDatasetPreprocForRmColl() {
-	msiSplitPath($collName, *parent, *datasetId);
-	acGetDatasetConfigFileContent($collName, *pairs);
-	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
-	acPostEvent(*content)
-}
-
-# Retrieves the dataset.json content in the form of key/value pairs that are digestable via the iRODS microservices.
-# *userDatasetPath - input - absolute path to the dataset of interest (/ebrc/workspaces/users/<userid>/datasets/<datasetid)
-# *content - output - a string containing key/value pairs
-# In addition to the dataset.json content and system timestamp in milliseconds is returned to provide a unique identifier
-# for any subsequent file holding this content
-# TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
-# concerns.
-acGetDatasetConfigFileContent(*userDatasetPath, *content) {
-	*datasetConfigFile = "*userDatasetPath/dataset.json";
-	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
-	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
-	msiDataObjRead(*datasetConfigFileDescriptor, *datasetConfigFileSize, *datasetConfigData);
-	# Escapes the double quotes so that the content is transmitted as an intact single string.
-	*datasetConfigDataArg = execCmdArg(str(*datasetConfigData));
-	msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
-	msiExecCmd("datasetParser.py", *datasetConfigDataArg,"null","null","null",*datasetConfigResult);
-	msiGetStdoutInExecCmdOut(*datasetConfigResult, *out);
-	msiString2KeyValPair(*out, *content);
 }
 
 # The dataset configuration file is re-written to include
@@ -263,4 +260,12 @@ acGetDataObjectSize(*dataObject, *dataObjectSize) {
 	foreach(*results) {
 	  *dataObjectSize = int(*results.DATA_SIZE);
 	}
+}
+
+# Fail cleanly - relates to non-user issues
+acFailCleanly(*identifier, *subject, *message) {
+  *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
+  msiSendMail("criswlawrence@gmail.com", *subject, *message);
+  acCreateCompletionFlag(*identifier, *userMessage, "failure");
+  msiGoodFailure;
 }
