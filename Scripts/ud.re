@@ -72,39 +72,50 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	if(int(*userId) > 0) {
 
         # check user's workspace consumption and proceed only if under quota.
+        writeLine("serverLog", "Checking whether user is already over quota.");
         acGetDefaultQuota(*defaultQuota);
 	    acGetWorkspaceUsed(*userId, *collectionSize);
+	    *quotaMegabytes = *defaultQuota/1000000;
+	    *message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
 	    if(*collectionSize > *defaultQuota) {
-	        *quotaMegabytes = *defaultQuota/1000000;
-	        *message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
 	        acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
 	        msiGoodFailure;
 	    }
 
-	    #TODO - get size of tarball
+	    # check size of user's tarball so it if, even unpacked, it will put the user's workspace over quota
+	    writeLine("serverLog", "Checking whether user tarball will put user over quota.")
+	    *tarballFile = *fileDir ++ "/" ++ *fileName;
+	    acGetDataObjectSize(*tarballFile, *tarballSize);
+	    writeLine("serverLog", "The tarball size is *tarballSize");
+	    if(*tarballSize + *collectionSize > *defaultQuota) {
+	        acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	        msiGoodFailure;
+	    }
 
 	    # unpack the tarball under the user datasets folder using the data id as the dataset id.
-	    *tarballPath = *fileDir ++ "/" ++ *fileName;
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	    writeLine("serverLog", "Unpacking *fileName to *userDatasetPath");
-  	    msiTarFileExtract(*tarballPath, *userDatasetPath, $rescName, *UnpkStatus);
+	    writeLine("serverLog", "Unpacking *tarballFile to *userDatasetPath");
+  	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *UnpkStatus);
 
-  	    # Fabricate an event.
-	    acGetDatasetJsonContent(*userDatasetPath, *pairs)
+  	    # Get the data needed to create an event from the dataset configuration file.
+  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
+	    acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
 	  
-	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset
-	    acOverwriteDatasetJsonContent(*userDatasetPath, *pairs.modifiedContent);
+	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
+	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
+	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent);
 
   	    # Assemble the line to be posted as an event and post it
+  	    writeLine("serverLog", "Posting the new event.");
 	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	    acPostEvent(*content);
 
 	    # Remove the tarball only if everything succeeds
-	    msiDataObjUnlink("objPath=*tarballPath++++replNum=0++++forceFlag=",*DelStatus);
-	    writeLine("serverLog", "Removed *tarballPath tarball");
+	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*DelStatus);
+	    writeLine("serverLog", "Removed *tarballFile tarball");
 
 	    # Write out a success message
-	    *message = "tarball *fileName upacked to *userDatasetPath and event posted\n";
+	    *message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
 	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
     }
 	else {
@@ -124,7 +135,7 @@ acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
   writeLine("serverLog", "Recipient is *recipientId and Dataset is *datasetId");
   
   # Fabricate a share event.
-  acGetDatasetJsonContent(*userDatasetPath, *pairs)
+  acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
   *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
   acPostEvent(*content);
 }
@@ -137,7 +148,7 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
 	
     # Fabricate an external dataset event.
 	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId"; 
-    acGetDatasetJsonContent(*ownerDatasetPath, *pairs)
+    acGetDatasetConfigFileContent(*ownerDatasetPath, *pairs)
     *content = "externalDataset\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *action ++ "\n";
     acPostEvent(*content);
 }
@@ -186,7 +197,7 @@ acGetDefaultQuota(*defaultQuota) {
 # content:  uninstall projects user_dataset_id ud_type_name ud_type_version
 acDatasetPreprocForRmColl() {
 	msiSplitPath($collName, *parent, *datasetId);
-	acGetDatasetJsonContent($collName, *pairs);
+	acGetDatasetConfigFileContent($collName, *pairs);
 	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
 	acPostEvent(*content)
 }
@@ -198,7 +209,7 @@ acDatasetPreprocForRmColl() {
 # for any subsequent file holding this content
 # TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
 # concerns.
-acGetDatasetJsonContent(*userDatasetPath, *content) {
+acGetDatasetConfigFileContent(*userDatasetPath, *content) {
 	*datasetConfigFile = "*userDatasetPath/dataset.json";
 	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
 	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
@@ -212,14 +223,16 @@ acGetDatasetJsonContent(*userDatasetPath, *content) {
 }
 
 # The dataset configuration file is re-written to include
-acOverwriteDatasetJsonContent(*userDatasetPath, *content) {
-  writeLine("serverLog", "Need to overwrite dataset.json with *content");
-  *DatasetConfigPath = "*userDatasetPath/dataset.json";
-  msiDataObjOpen("objPath=*DatasetConfigPath++++replNum=0++++openFlags=O_RDWRO_TRUNC", *fileDescriptor);
-  msiDataObjWrite(*fileDescriptor,*content,*fileSize);
-  msiDataObjClose(*fileDescriptor,*fileStatus);
+acOverwriteDatasetConfigFileContent(*userDatasetPath, *content) {
+  writeLine("serverLog", "Overwrite the original dataset configuration file with updated content.");
+  *datasetConfigFile = "*userDatasetPath/dataset.json";
+  msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDWRO_TRUNC", *datasetConfigFileDescriptor);
+  msiDataObjWrite(*datasetConfigFileDescriptor, *content, *datasetConfigFileSize);
+  msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
 }
 
+# Fires off the RESTful call to Jenkins to process the event file.  The jobFile provides the data needed to call
+# Jenkins.
 acTriggerEvent() {
 	*jobFile = "/ebrc/workspaces/jenkinsCommunicationConfig.txt";
 	acGetDataObjectSize(*jobFile, *jobFileSize);
@@ -232,12 +245,14 @@ acTriggerEvent() {
 	writeLine("serverLog", *out);
 }
 
+# Provides a status flag, with the outcome as part of the flag file name, that provides some insight into the
+# the successful and failed attempts at manipulating iRODS file data.
 acCreateCompletionFlag(*identifier, *message, *outcome) {
-    *statusFile = *outcome ++ "_" ++ *identifier;
-    *statusFilePath = "/ebrc/workspaces/flags/*statusFile";
-    msiDataObjCreate(*statusFilePath,"forceFlag=",*fileDescriptor);
-    msiDataObjWrite(*fileDescriptor,*message,*fileSize);
-    msiDataObjClose(*fileDescriptor,*fileStatus);
+    *statusFileName = *outcome ++ "_" ++ *identifier;
+    *statusFile = "/ebrc/workspaces/flags/*statusFileName";
+    msiDataObjCreate(*statusFile,"forceFlag=",*statusFileDescriptor);
+    msiDataObjWrite(*statusFileDescriptor, *message, *statusFileSize);
+    msiDataObjClose(*statusFileDescriptor, *statusFileStatus);
 }
 
 # Convenience method for getting the integer size in bytes of a data object
