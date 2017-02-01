@@ -104,47 +104,68 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
   	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
-  	        *error = failureMsg(*error, "msiTarFileExtract step failed.");
+  	        *error = failureMsg(*error, "Unable to unpack the tarball into the staging area.");
+  	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	    }
 
   	    # Get the data needed to create an event from the dataset configuration file.
   	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
 	    acGetDatasetConfigFileContent(*stagingDatasetPath, *pairs) ::: {
-	        *error = failureMsg(*error, "acGetDatasetConfigFileContent step failed");
+	        *error = failureMsg(*error, "Unable to retrieve content from the dataset's dataset.json file.");
+	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
 	    }
 
-	    # Unpack the tarball into the user's datasets collection now that it appears valid.
-	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus);
+	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
+	    # that the tarball is unpackable and contains a dataset.json file.
+	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
+	        *error = failureMsg(*error, "Unable to unpack the tarball into the user's datasets collection.\nAny leftover may compromise the GUI.");
+	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+	    }
 
         # Delete the user dataset placed in the staging area
-	    msiRmColl(*stagingDatasetPath,"forceFlag=",*actionStatus);
+	    msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus) ::: {
+	        *error = failureMsg(*error, "Unable to remove dataset collection from the staging area.\nIt can be removed manually but it does not compromise the GUI.");
+	    }
 	  
 	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
 	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
 	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
-	        *error = failureMsg(*error, "acOverwriteDatasetConfigFileContent step failed");
+	        *error = failureMsg(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
 	    }
 
   	    # Assemble the line to be posted as an event and post it
   	    writeLine("serverLog", "Posting the new event.");
 	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	    acPostEvent(*content) ::: {
-	        *error = failureMsg(*error, "acPostEvent step failed");
+	        *error = failureMsg(*error, "Unable to post the install event.");
+	    }
+    } ::: {
+	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "*error");
+	}
+
+    *warning = "";
+    {
+        # Make a RESTful call to Jenkins to process the contents of the events collection.
+	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
+	    acTriggerEvent() ::: {
+	        *warning = failureMsg(*warning, "Unable to trigger the Jenkins listener.\nJenkins may be offline.\nA scheduled run should pick the install event.");
 	    }
 
 	    # Remove the tarball only if everything succeeds
 	    writeLine("serverLog", "Removing *tarballFile tarball.");
 	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*actionStatus) ::: {
-	        *error = failureMsg(*error, "misDataObjUnlink step failed - *actionStatus");
+	        *warning = failureMsg(*warning, "misDataObjUnlink step failed - *actionStatus");
 	    }
 	} ::: {
-	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "Error: *error");
+	    acSystemWarning(trimr(*fileName,"."), "IRODS acPostProcForPut Warning", "*warning");
+	    *message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
+	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
+	    msiGoodFailure; # Want to stop redos here
 	}
 
 	# Write out a success message
 	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
 	acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
-
 }
 
 # This action is called by the acPostProcForPut action whenever a data object with a name corresponding to a share
@@ -152,15 +173,15 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 # folder with the following tab-delimited data:
 # share projects user_dataset_id ud_type_name ud_type_version user_id grant or revoke
 acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
-  msiSplitPath(*fileDir, *userDatasetPath, *trash);
-  writeLine("serverLog", "User dataset is *userDatasetPath");
-  msiSplitPath(*userDatasetPath, *parent, *datasetId);
-  writeLine("serverLog", "Recipient is *recipientId and Dataset is *datasetId");
+    msiSplitPath(*fileDir, *userDatasetPath, *trash);
+    writeLine("serverLog", "User dataset is *userDatasetPath");
+    msiSplitPath(*userDatasetPath, *parent, *datasetId);
+    writeLine("serverLog", "Recipient is *recipientId and Dataset is *datasetId");
   
-  # Fabricate a share event.
-  acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
-  *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
-  acPostEvent(*content);
+    # Fabricate a share event.
+    acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
+    *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
+    acPostEvent(*content);
 }
 
 # externalDataset projects user_dataset_id ud_type_name ud_type_version user_id create/delete
@@ -214,15 +235,14 @@ acGetDatasetConfigFileContent(*userDatasetPath, *content) {
 # Since iRODS microservices only return timestamps in seconds, we are resorting to a
 # python call to get the timestamp in milliseconds (could have been a shell call)
 acPostEvent(*eventContent) {
-  msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
-  msiGetStdoutInExecCmdOut(*Result,*Out);
-  *fileName = "event_*Out.txt";
-  *eventPath = "/ebrc/workspaces/events/*fileName";
-  msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
-  msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
-  msiDataObjClose(*eventFileDescriptor,*eventStatus);
-  writeLine("serverLog", "Created event file *fileName");
-  acTriggerEvent();
+    msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
+    msiGetStdoutInExecCmdOut(*Result,*Out);
+    *fileName = "event_*Out.txt";
+    *eventPath = "/ebrc/workspaces/events/*fileName";
+    msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
+    msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
+    msiDataObjClose(*eventFileDescriptor,*eventStatus);
+    writeLine("serverLog", "Created event file *fileName");
 }
 
 # Returns the integer size, in bytes, of the datasets currently in the user's workspace.
@@ -230,7 +250,7 @@ acGetWorkspaceUsed(*userId, *collectionSize) {
     *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
     *collectionSize = 0;
 	foreach(*result in *results) {
-	  *collectionSize = int(*result.DATA_SIZE);
+	    *collectionSize = int(*result.DATA_SIZE);
 	}
 }
 
@@ -248,11 +268,11 @@ acGetDefaultQuota(*defaultQuota) {
 
 # The dataset configuration file is re-written to include
 acOverwriteDatasetConfigFileContent(*userDatasetPath, *content) {
-  writeLine("serverLog", "Overwrite the original dataset configuration file with updated content.");
-  *datasetConfigFile = "*userDatasetPath/dataset.json";
-  msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDWRO_TRUNC", *datasetConfigFileDescriptor);
-  msiDataObjWrite(*datasetConfigFileDescriptor, *content, *datasetConfigFileSize);
-  msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
+    writeLine("serverLog", "Overwrite the original dataset configuration file with updated content.");
+    *datasetConfigFile = "*userDatasetPath/dataset.json";
+    msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDWRO_TRUNC", *datasetConfigFileDescriptor);
+    msiDataObjWrite(*datasetConfigFileDescriptor, *content, *datasetConfigFileSize);
+    msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
 }
 
 # Fires off the RESTful call to Jenkins to process the event file.  The jobFile provides the data needed to call
@@ -295,8 +315,8 @@ acUserFailure(*identifier, *message) {
     msiGoodFailure;
 }
 
-# Relates to system issues outside of the user's control.  User gets a generic failure message and an email is
-# posted to EuPath mailing list with more useful (hopefully) detail.  The action terminates.
+# Relates to significant system issues outside of the user's control.  User gets a generic failure message and an
+# email is posted to the EuPath mailing list with more useful (hopefully) detail.  The action terminates.
 acSystemFailure(*identifier, *subject, *message) {
     *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
     msiSendMail("criswlawrence@gmail.com", *subject, "*identifier: *message");
@@ -304,6 +324,11 @@ acSystemFailure(*identifier, *subject, *message) {
     msiGoodFailure;
 }
 
+# Relates to relatively benign system issues outside the user's view.  An email is posted to the EuPath mailing list
+# with the nature of the warning.
+acSystemWarning(*identifier, *subject, *message) {
+    msiSendMail("criswlawrence@gmail.com", *subject, "*identifier: *message");
+}
 
 # Failure message is the first non-empty string evaluated - courtesy of Mark Heiges
 failureMsg(*PrevMsg, *NewMsg) = {
