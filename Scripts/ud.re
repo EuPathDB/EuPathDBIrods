@@ -81,7 +81,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*quotaMegabytes = *defaultQuota/1000000;
 	*message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
 	if(*collectionSize > *defaultQuota) {
-	    acUserFailure(trimr(*fileName,"."), *message);
+	    acUserIssue(trimr(*fileName,"."), *message);
 	    msiGoodFailure;
 	}
 
@@ -90,12 +90,14 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*tarballFile = *fileDir ++ "/" ++ *fileName;
 	acGetDataObjectSize(*tarballFile, *tarballSize);
 	if(*tarballSize + *collectionSize > *defaultQuota) {
-	    acUserFailure(trimr(*fileName,"."), *message);
+	    acUserIssue(trimr(*fileName,"."), *message);
 	    msiGoodFailure;
 	}
 
-    # Any failures here are system related issues.  Initialize message to an empty string.
+    # Any incidents here are system related issues.  They may be merely warnings (the user isn't notified) or they
+    # may rise to the level of errors (the user receives an error message)
 
+    # Both the warning and error messages are initialized to empty strings in preparation.
     *warning = "";
     *error = "";
     {
@@ -106,41 +108,41 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
   	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
-  	        *error = failureMsg(*error, "Unable to unpack the tarball into the staging area.");
+  	        *error = setIncidentMesssage(*error, "Unable to unpack the tarball into the staging area.");
   	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	    }
 
   	    # Get the data needed to create an event from the dataset configuration file.
   	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
 	    acGetDatasetConfigFileContent(*stagingDatasetPath, *pairs) ::: {
-	        *error = failureMsg(*error, "Unable to retrieve content from the dataset's dataset.json file.");
+	        *error = setIncidentMessage(*error, "Unable to retrieve content from the dataset's dataset.json file.");
 	    }
 
 	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
 	    # that the tarball is unpackable and contains a dataset.json file.
 	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
-	        *error = failureMsg(*error, "Unable to unpack the tarball into the user's datasets collection.\n
+	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the user's datasets collection.\n
 	        Any leftover may compromise the GUI.");
 	    }
 
 	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
 	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
 	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
-	        *error = failureMsg(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
+	        *error = setIncidentMessage(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
 	    }
 
   	    # Assemble the line to be posted as an event and post it
   	    writeLine("serverLog", "Posting the new event.");
 	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
 	    acPostEvent(*content) ::: {
-	        *error = failureMsg(*error, "Unable to post the install event.");
+	        *error = setIncidentMessage(*error, "Unable to post the install event.");
 	    }
 
         # Make a RESTful call to Jenkins to process the contents of the events collection.
 	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
 	    acTriggerEvent() ::: {
 	        *error = "warning";
-	        *warning = failureMsg(*warning, "Unable to trigger the Jenkins listener.\n
+	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
 	        Jenkins may be offline or the listener job maybe disabled.\n
 	        A later scheduled run should pick up the install event.");
 	    }
@@ -149,7 +151,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    writeLine("serverLog", "Removing *tarballFile tarball.");
 	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*actionStatus) ::: {
 	        *error = "warning";
-	        *warning = failureMsg(*warning, "misDataObjUnlink step failed - *actionStatus");
+	        *warning = setIncidentMessage(*warning, "misDataObjUnlink step failed - *actionStatus");
 	    }
 	} ::: {
 	    acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", *warning, *error);
@@ -305,13 +307,14 @@ acGetDataObjectSize(*dataObject, *dataObjectSize) {
 }
 
 # Related to user issues.  User gets an informative message only and the action terminates.
-acUserFailure(*identifier, *message) {
+acUserIssue(*identifier, *message) {
     acCreateCompletionFlag(*identifier, *message, "failure");
     msiGoodFailure;
 }
 
-# Relates to system issues outside of the user's control.  User gets a generic failure message and an
-# email is posted to the EuPath mailing list with more useful (hopefully) detail.  The action terminates.
+# Relates to system issues outside of the user's control.  In the case of an error, the user gets a generic
+# failure message and an email is posted to the EuPath mailing list with more detail.  In the case of a warningm
+# the user receives a success message but an email containing the warning is sent to the EuPath mailing list.
 acSystemIssue(*identifier, *subject, *warning, *error) {
     if(*error != 'warning') {
         *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
@@ -326,12 +329,12 @@ acSystemIssue(*identifier, *subject, *warning, *error) {
     msiGoodFailure;
 }
 
-# Failure message is the first non-empty string evaluated - courtesy of Mark Heiges
-failureMsg(*PrevMsg, *NewMsg) = {
-    if (*PrevMsg == '') {
-        *NewMsg;
+# Set the incident message only if not already set - strategy courtesy of Mark Heiges
+setIncidentMessage(*prior, *new) = {
+    if (strlen(*prior) == 0) {
+        *new;
     }
     else {
-        *PrevMsg;
+        *prior;
     }
 }
