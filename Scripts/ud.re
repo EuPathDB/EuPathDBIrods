@@ -47,7 +47,6 @@ acPreprocForRmColl {
 	*count = 0;
 	foreach(*result in *results) {
 	  *count = int(*result.DATA_ID);
-	  writeLine("serverLog","Count *count");
 	}
     if(*count == 0 && $collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
 	  acDatasetPreprocForRmColl();
@@ -67,11 +66,12 @@ acPostProcForCreate {
 # mechanism for making the file unique.  The tarball is unpacked in /ebrc/workspaces/users/<userId>/datasets<datasetId>
 # where the userId is extracted from the tarball name and the dataset id is the data id given by irods to this particular file.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
-	*userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
 
 	# insure the the user id is a positive number
+	writeLine("serverLog", "Checking user id");
+	*userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
 	if(*userId <= 0) {
-	    acFailCleanly(trimr(*fileName,"."), "IRODS acPostProcForPut", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
+	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	}
 
     # check user's workspace consumption and proceed only if under quota.
@@ -81,7 +81,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*quotaMegabytes = *defaultQuota/1000000;
 	*message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
 	if(*collectionSize > *defaultQuota) {
-	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	    acUserFailure(trimr(*fileName,"."), *message);
 	    msiGoodFailure;
 	}
 
@@ -90,31 +90,56 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	*tarballFile = *fileDir ++ "/" ++ *fileName;
 	acGetDataObjectSize(*tarballFile, *tarballSize);
 	if(*tarballSize + *collectionSize > *defaultQuota) {
-	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "failure");
+	    acUserFailure(trimr(*fileName,"."), *message);
 	    msiGoodFailure;
 	}
 
-	# unpack the tarball under the user datasets folder using the data id as the dataset id.
-    *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	writeLine("serverLog", "Unpacking *tarballFile to *userDatasetPath");
-  	msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *UnpkStatus);
+    # Any failures here are system related issues.  Initialize message to an empty string.
+    *error = "";
+    {
+	    # Unpack the tarball into staging area.  The tarball $dataId will identify the dataset collection.
+	    # Done first to staging to verify integrity of tarball since removing a bad dataset collection from
+	    # the user's collection of datasets will trigger a PEP.  This approach avoids that.
+	    *stagingDatasetPath = "/ebrc/workspaces/staging/$dataId";
+        *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
+	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
+  	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
+  	        *error = failureMsg(*error, "msiTarFileExtract step failed.");
+  	    }
 
-  	# Get the data needed to create an event from the dataset configuration file.
-  	writeLine("serverLog", "Obtaining the dataset configuration file data.");
-	acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
+  	    # Get the data needed to create an event from the dataset configuration file.
+  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
+	    acGetDatasetConfigFileContent(*stagingDatasetPath, *pairs) ::: {
+	        *error = failureMsg(*error, "acGetDatasetConfigFileContent step failed");
+	    }
+
+	    # Unpack the tarball into the user's datasets collection now that it appears valid.
+	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus);
+
+        # Delete the user dataset placed in the staging area
+	    msiRmColl(*stagingDatasetPath,"forceFlag=",*actionStatus);
 	  
-	# Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
-	writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
-	acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent);
+	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
+	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
+	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
+	        *error = failureMsg(*error, "acOverwriteDatasetConfigFileContent step failed");
+	    }
 
-  	# Assemble the line to be posted as an event and post it
-  	writeLine("serverLog", "Posting the new event.");
-	*content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
-	acPostEvent(*content);
+  	    # Assemble the line to be posted as an event and post it
+  	    writeLine("serverLog", "Posting the new event.");
+	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
+	    acPostEvent(*content) ::: {
+	        *error = failureMsg(*error, "acPostEvent step failed");
+	    }
 
-	# Remove the tarball only if everything succeeds
-	msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*DelStatus);
-	writeLine("serverLog", "Removed *tarballFile tarball");
+	    # Remove the tarball only if everything succeeds
+	    writeLine("serverLog", "Removing *tarballFile tarball.");
+	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*actionStatus) ::: {
+	        *error = failureMsg(*error, "misDataObjUnlink step failed - *actionStatus");
+	    }
+	} ::: {
+	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "Error: *error");
+	}
 
 	# Write out a success message
 	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
@@ -160,6 +185,8 @@ acDatasetPreprocForRmColl() {
 	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
 	acPostEvent(*content)
 }
+
+# ------------------------- Utilities --------------------- #
 
 # Retrieves the dataset.json content in the form of key/value pairs that are digestable via the iRODS microservices.
 # *userDatasetPath - input - absolute path to the dataset of interest (/ebrc/workspaces/users/<userid>/datasets/<datasetid)
@@ -262,10 +289,28 @@ acGetDataObjectSize(*dataObject, *dataObjectSize) {
 	}
 }
 
-# Fail cleanly - relates to non-user issues
-acFailCleanly(*identifier, *subject, *message) {
-  *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
-  msiSendMail("criswlawrence@gmail.com", *subject, *message);
-  acCreateCompletionFlag(*identifier, *userMessage, "failure");
-  msiGoodFailure;
+# Related to user issues.  User gets an informative message only and the action terminates.
+acUserFailure(*identifier, *message) {
+    acCreateCompletionFlag(*identifier, *message, "failure");
+    msiGoodFailure;
+}
+
+# Relates to system issues outside of the user's control.  User gets a generic failure message and an email is
+# posted to EuPath mailing list with more useful (hopefully) detail.  The action terminates.
+acSystemFailure(*identifier, *subject, *message) {
+    *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
+    msiSendMail("criswlawrence@gmail.com", *subject, "*identifier: *message");
+    acCreateCompletionFlag(*identifier, *userMessage, "failure");
+    msiGoodFailure;
+}
+
+
+# Failure message is the first non-empty string evaluated - courtesy of Mark Heiges
+failureMsg(*PrevMsg, *NewMsg) = {
+    if (*PrevMsg == '') {
+        *NewMsg;
+    }
+    else {
+        *PrevMsg;
+    }
 }
