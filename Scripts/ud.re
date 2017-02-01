@@ -95,6 +95,8 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	}
 
     # Any failures here are system related issues.  Initialize message to an empty string.
+
+    *warning = "";
     *error = "";
     {
 	    # Unpack the tarball into staging area.  The tarball $dataId will identify the dataset collection.
@@ -112,21 +114,15 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
 	    acGetDatasetConfigFileContent(*stagingDatasetPath, *pairs) ::: {
 	        *error = failureMsg(*error, "Unable to retrieve content from the dataset's dataset.json file.");
-	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
 	    }
 
 	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
 	    # that the tarball is unpackable and contains a dataset.json file.
 	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
-	        *error = failureMsg(*error, "Unable to unpack the tarball into the user's datasets collection.\nAny leftover may compromise the GUI.");
-	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+	        *error = failureMsg(*error, "Unable to unpack the tarball into the user's datasets collection.\n
+	        Any leftover may compromise the GUI.");
 	    }
 
-        # Delete the user dataset placed in the staging area
-	    msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus) ::: {
-	        *error = failureMsg(*error, "Unable to remove dataset collection from the staging area.\nIt can be removed manually but it does not compromise the GUI.");
-	    }
-	  
 	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
 	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
 	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
@@ -139,29 +135,28 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    acPostEvent(*content) ::: {
 	        *error = failureMsg(*error, "Unable to post the install event.");
 	    }
-    } ::: {
-	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "*error");
-	}
 
-    *warning = "";
-    {
         # Make a RESTful call to Jenkins to process the contents of the events collection.
 	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
 	    acTriggerEvent() ::: {
-	        *warning = failureMsg(*warning, "Unable to trigger the Jenkins listener.\nJenkins may be offline.\nA scheduled run should pick the install event.");
+	        *error = "warning";
+	        *warning = failureMsg(*warning, "Unable to trigger the Jenkins listener.\n
+	        Jenkins may be offline or the listener job maybe disabled.\n
+	        A later scheduled run should pick up the install event.");
 	    }
 
 	    # Remove the tarball only if everything succeeds
 	    writeLine("serverLog", "Removing *tarballFile tarball.");
 	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*actionStatus) ::: {
+	        *error = "warning";
 	        *warning = failureMsg(*warning, "misDataObjUnlink step failed - *actionStatus");
 	    }
 	} ::: {
-	    acSystemWarning(trimr(*fileName,"."), "IRODS acPostProcForPut Warning", "*warning");
-	    *message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
-	    acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
-	    msiGoodFailure; # Want to stop redos here
+	    acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", *warning, *error);
 	}
+
+	# Delete the user dataset placed in the staging area as we are now done with it.
+    msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus)
 
 	# Write out a success message
 	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
@@ -315,19 +310,20 @@ acUserFailure(*identifier, *message) {
     msiGoodFailure;
 }
 
-# Relates to significant system issues outside of the user's control.  User gets a generic failure message and an
+# Relates to system issues outside of the user's control.  User gets a generic failure message and an
 # email is posted to the EuPath mailing list with more useful (hopefully) detail.  The action terminates.
-acSystemFailure(*identifier, *subject, *message) {
-    *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
-    msiSendMail("criswlawrence@gmail.com", *subject, "*identifier: *message");
-    acCreateCompletionFlag(*identifier, *userMessage, "failure");
+acSystemIssue(*identifier, *subject, *warning, *error) {
+    if(*error != 'warning') {
+        *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
+        msiSendMail("criswlawrence@gmail.com", "Error *subject", "*identifier: *error");
+        acCreateCompletionFlag(*identifier, *userMessage, "failure");
+    }
+    else {
+        writeLine("serverLog","Warning - *warning")
+        msiSendMail("criswlawrence@gmail.com", "Warning *subject", "*identifier: *warning");
+        acCreateCompletionFlag(*identifier, *warning, "success");
+    }
     msiGoodFailure;
-}
-
-# Relates to relatively benign system issues outside the user's view.  An email is posted to the EuPath mailing list
-# with the nature of the warning.
-acSystemWarning(*identifier, *subject, *message) {
-    msiSendMail("criswlawrence@gmail.com", *subject, "*identifier: *message");
 }
 
 # Failure message is the first non-empty string evaluated - courtesy of Mark Heiges
