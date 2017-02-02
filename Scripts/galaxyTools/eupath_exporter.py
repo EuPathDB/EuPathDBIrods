@@ -203,14 +203,26 @@ class Export:
         auth = HTTPBasicAuth(self._user, self._pwd)
         try:
             response = requests.post(request, auth=auth, headers=headers, files=upload_file)
-        except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
-            print >> sys.stderr, "Error: " + str(e)
+            response.raise_for_status()
+        except:
+            print >> sys.stderr, "Error: The dataset export could not be completed at this time.  The EuPathDB" \
+                                 " workspace may be unavailable presently."
             sys.exit(1)
         return response
 
     def get_flag(self, collection, source_file):
-        time.sleep(5)
+        """
+        This method picks up any flag (success or failure) from the flags collection in iRODs related to the dataset
+        exported to determine whether the export was successful.  If not, the nature of the failure is reported to the
+        user.  The failure report will normally be very general unless the problem is one that can possibly be remedied
+        by the user (e.g., going over quota).
+        :param collection: The iRODS collection holding the status flags
+        :param source_file: The dataset tarball name sans extension
+        """
+        time.sleep(5)  # arbitrary wait period before one time check for a flag.
         auth = HTTPBasicAuth(self._user, self._pwd)
+        # Look for the presence of a success flag first and if none found, check for a failure flag.  If neither
+        # found, assume that to be a failure also.
         try:
             request = self._url + collection + "/" + "success_" + source_file
             success = requests.get(request, auth=auth, timeout=5)
