@@ -43,13 +43,14 @@ acPostProcForDelete {
 # Custom event hook for user dataset pre-processiong preceding an irm of a collection
 acPreprocForRmColl {
     writeLine("serverLog", "PEP acPreprocForRmColl - $collName");
-    *results = SELECT COUNT(DATA_ID) WHERE COLL_NAME = '/ebrc/workspaces' AND DATA_NAME = 'flushMode';
-	*count = 0;
-	foreach(*result in *results) {
-	  *count = int(*result.DATA_ID);
-	}
-    if(*count == 0 && $collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
-	  acDatasetPreprocForRmColl();
+    *exists = checkForDataObjectExistence('/ebrc/workspaces', 'flushMode')
+    if(*exists) {
+        writeLine("serverLog", "Flush mode in effect - exit PEP");
+    }
+    else {
+        if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
+	        acDatasetPreprocForRmColl();
+	    }
 	}
 }
 
@@ -111,6 +112,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging area.");
   	        *exists = checkForCollectionExistence(*stagingDatasetPath);
   	        if(*exists) {
+  	          writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
   	          msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	        }
   	    }
@@ -344,11 +346,22 @@ setIncidentMessage(*prior, *new) = {
     }
 }
 
-checkForCollectionExistence(*collection) = {
-    *results = SELECT COUNT(DATA_ID) WHERE COLL_NAME = '*collection';
+# Convenience method to check for the existence of a data object (file).
+checkForDataObjectExistence(*dataObjectPath, *dataObjectName) = {
+    *results = SELECT COUNT(DATA_ID) WHERE COLL_NAME = '*dataObjectPath' AND DATA_NAME = '*dataObjectName';
 	*count = 0;
 	foreach(*result in *results) {
 	  *count = int(*result.DATA_ID);
 	}
-    *count > 1;
+	*count > 0;
+}
+
+# Convenience method to check for the existence of a collection (folder).
+checkForCollectionExistence(*collection) = {
+    *results = SELECT COUNT(COLL_NAME) WHERE COLL_NAME = '*collection';
+	*count = 0;
+	foreach(*result in *results) {
+	  *count = int(*result.COLL_NAME);
+	}
+    *count > 0;
 }
