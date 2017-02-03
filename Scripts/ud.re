@@ -108,8 +108,11 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
   	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
-  	        *error = setIncidentMesssage(*error, "Unable to unpack the tarball into the staging area.");
-  	        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+  	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging area.");
+  	        *exists = checkForCollectionExistence(*stagingDatasetPath);
+  	        if(*exists) {
+  	          msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+  	        }
   	    }
 
   	    # Get the data needed to create an event from the dataset configuration file.
@@ -151,7 +154,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    writeLine("serverLog", "Removing *tarballFile tarball.");
 	    msiDataObjUnlink("objPath=*tarballFile++++replNum=0++++forceFlag=",*actionStatus) ::: {
 	        *error = "warning";
-	        *warning = setIncidentMessage(*warning, "misDataObjUnlink step failed - *actionStatus");
+	        *warning = setIncidentMessage(*warning, "Unable to remove the tarball.");
 	    }
 	} ::: {
 	    acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", *warning, *error);
@@ -290,6 +293,7 @@ acTriggerEvent() {
 # the successful and failed attempts at manipulating iRODS file data.
 acCreateCompletionFlag(*identifier, *message, *outcome) {
     *statusFileName = *outcome ++ "_" ++ *identifier;
+    writeLine("serverLog", "Creating status flag for *statusFileName");
     *statusFile = "/ebrc/workspaces/flags/*statusFileName";
     msiDataObjCreate(*statusFile,"forceFlag=",*statusFileDescriptor);
     msiDataObjWrite(*statusFileDescriptor, *message, *statusFileSize);
@@ -317,12 +321,13 @@ acUserIssue(*identifier, *message) {
 # the user receives a success message but an email containing the warning is sent to the EuPath mailing list.
 acSystemIssue(*identifier, *subject, *warning, *error) {
     if(*error != 'warning') {
+        writeLine("serverLog", "Error *subject - *identifier : *error");
         *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
         msiSendMail("criswlawrence@gmail.com", "Error *subject", "*identifier: *error");
         acCreateCompletionFlag(*identifier, *userMessage, "failure");
     }
     else {
-        writeLine("serverLog","Warning - *warning")
+        writeLine("serverLog","Warning *subject - *identifier : *warning");
         msiSendMail("criswlawrence@gmail.com", "Warning *subject", "*identifier: *warning");
         acCreateCompletionFlag(*identifier, *warning, "success");
     }
@@ -337,4 +342,13 @@ setIncidentMessage(*prior, *new) = {
     else {
         *prior;
     }
+}
+
+checkForCollectionExistence(*collection) = {
+    *results = SELECT COUNT(DATA_ID) WHERE COLL_NAME = '*collection';
+	*count = 0;
+	foreach(*result in *results) {
+	  *count = int(*result.DATA_ID);
+	}
+    *count > 1;
 }
