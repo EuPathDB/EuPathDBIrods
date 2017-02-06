@@ -6,6 +6,8 @@ def builderJob = 'irods-builder'
 def listenerJob = 'irods-listener'
 def handlerJobPrefix = 'irods-handler-'
 def datasetStoreId = "DATASET_STORE_ID"
+def emailRecipient = 'criswlawrence@gmail.com'
+def sender = 'crisl@upenn.edu'
 
 def handlerJobDesc = { project ->
   def thisBuild = Thread.currentThread().executable // a hudson.model.FreeStyleBuild
@@ -206,6 +208,23 @@ job('irods-builder') {
   steps {
     shell(builderPostScmStep())
   }
+  publishers {
+	extendedEmail {
+	  recipientList(emailRecipient)
+	  defaultSubject('Jenkins Message for the iRODS builder')
+      defaultContent('EOM')
+	  replyToList(sender)
+	  triggers {
+	    failure {
+	      subject('Jenkins Failure for the iRODS builder')
+	      content('Builder Failed')
+		  attachBuildLog(true)
+		  replyToList(sender)
+		  recipientList(emailRecipient)
+	    }
+	  }
+	}
+  }
 }
 
 job('irods-listener') {
@@ -215,6 +234,23 @@ job('irods-listener') {
   }
   steps {
     systemGroovyCommand(listenerStep())
+  }
+  publishers {
+	extendedEmail {
+	  recipientList(emailRecipient)
+	  defaultSubject('Jenkins Message for the iRODS listener')
+      defaultContent('EOM')
+	  replyToList(sender)
+	  triggers {
+	    failure {
+	      subject('Jenkins Failure for the iRODS listener')
+	      content('Listener failed')
+		  attachBuildLog(true)
+		  replyToList(sender)
+		  recipientList(emailRecipient)
+	    }
+	  }
+	}
   }
 }
 
@@ -232,5 +268,22 @@ for(project in projects) {
     steps {
       shell(handlerStep(project))
     }
+	publishers {
+	  extendedEmail {
+	    recipientList(emailRecipient)
+	    defaultSubject('Jenkins Message for the ' + project + ' iRODS handler')
+		defaultContent('EOM')
+		replyToList(sender)
+	    triggers {
+	      failure {
+	        subject('Jenkins Failure for the ' + project + ' iRODS handler')
+	        content('Handler failed')
+			attachBuildLog(true)
+			replyToList(sender)
+			recipientList(emailRecipient)
+	      }
+	    }
+	  }
+	}
   }
 }

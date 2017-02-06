@@ -57,8 +57,8 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Generate Jenkins Jobs
   * To generate the Jenkins Jobs, we will follow the procedure described in the <code>JenkinsSetup.md</code> that comes with the vagrant-wij package with a few alterations.
   * Insure that all the needed plugins are installed.
-  * Outside of vagrant, copy the generator script for the irods jobs from the EuPathDBIrods project into the scratch directory (<code>cp scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsWorkspacesJobs.groovy .</code>).
-  * Rather than follow pasting the Groovy script described in the markdown document, paste into the Jenkins Script Console (under Manage Jenkins), the script found at <code>scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsJobGenerator.txt</code>.
+  * Outside of vagrant, copy the generator script for the irods jobs from the EuPathDBIrods project into the vagrant directory (<code>cp scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsWorkspacesJobs.groovy .</code>).
+  * Rather than follow pasting the Groovy script described in the markdown document, paste into the Jenkins Script Console (under Manage Jenkins), the script found at <code>project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsJobGenerator.txt</code>.
   * That script will create a shared workspace in /var/tmp/jenkins-irods.
   * In vagrant, become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/jenkins-irods</code>).
   * As joeuser, copy the PlasmoDBMetaConfig.yaml file described earlier into this workspace (e.g.,<code>cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/jenkins-irods/.</code>).
