@@ -184,6 +184,7 @@ acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
     acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
     *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
     acPostEvent(*content);
+    acTriggerEvent();
 }
 
 # externalDataset projects user_dataset_id ud_type_name ud_type_version user_id create/delete
@@ -197,6 +198,7 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
     acGetDatasetConfigFileContent(*ownerDatasetPath, *pairs)
     *content = "externalDataset\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *action ++ "\n";
     acPostEvent(*content);
+    acTriggerEvent();
 }
 
 # Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
@@ -206,7 +208,8 @@ acDatasetPreprocForRmColl() {
 	msiSplitPath($collName, *parent, *datasetId);
 	acGetDatasetConfigFileContent($collName, *pairs);
 	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
-	acPostEvent(*content)
+	acPostEvent(*content);
+	acTriggerEvent();
 }
 
 # ------------------------- Utilities --------------------- #
