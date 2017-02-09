@@ -7,11 +7,12 @@
 # Custom event hook for user dataset post processiong following an iput
 acPostProcForPut {
 	writeLine("serverLog", "PEP acPostProcForPut - $objPath");
+	*literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
 	# if a properly composed txt file is put into the landing zone, find the corresponding tarball and upack it.
-	if(*fileDir == "/ebrc/workspaces/flags" && *fileName like regex "dataset_u.*_t.*[.]txt") then {
+	if(*fileDir == *literals.flagsPath && *fileName like regex "dataset_u.*_t.*[.]txt") then {
 		*tarballName = trimr(*fileName,".") ++ ".tgz";
-		acLandingZonePostProcForPut("/ebrc/workspaces/lz", *tarballName);
+		acLandingZonePostProcForPut(*literals.landingZonePath, *tarballName);
 	}
 	# if a file is put into the sharedWith directory of a dataset, report it
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
@@ -31,6 +32,7 @@ acDataDeletePolicy {
 # Note that this event hook responds to irm -f only.  
 acPostProcForDelete {
     writeLine("serverLog", "PEP acPostProcForDelete - $objPath");
+    literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
 	if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
 		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
@@ -206,10 +208,34 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
 # content:  uninstall projects user_dataset_id ud_type_name ud_type_version
 acDatasetPreprocForRmColl() {
 	msiSplitPath($collName, *parent, *datasetId);
-	acGetDatasetConfigFileContent($collName, *pairs);
-	*content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
-	acPostEvent(*content);
-	acTriggerEvent();
+
+    # Both the warning and error messages are initialized to empty strings in preparation.
+    *warning = "";
+    *error = "";
+    {
+	    # Get the data needed to create an event from the dataset configuration file.
+  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
+	    acGetDatasetConfigFileContent($collName, *pairs) ::: {
+	    }
+
+	    # Assemble the line to be posted as an event and post it
+  	    writeLine("serverLog", "Posting the new event.");
+	    *content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
+	    acPostEvent(*content) ::: {
+	        *error = setIncidentMessage(*error, "Unable to post the uninstall event.");
+        }
+
+	    # Make a RESTful call to Jenkins to process the contents of the events collection.
+	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
+	    acTriggerEvent() ::: {
+	        *error = "warning";
+	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
+	        Jenkins may be offline or the listener job maybe disabled.\n
+	        A later scheduled run should pick up the install event.");
+	    }
+	} ::: {
+	    acSystemIssue(trimr(*datasetId,"."), "IRODS acPreprocForRmColl", *warning, *error);
+	}
 }
 
 # ------------------------- Utilities --------------------- #
@@ -321,9 +347,9 @@ acUserIssue(*identifier, *message) {
     msiGoodFailure;
 }
 
-# Relates to system issues outside of the user's control.  In the case of an error, the user gets a generic
-# failure message and an email is posted to the EuPath mailing list with more detail.  In the case of a warningm
-# the user receives a success message but an email containing the warning is sent to the EuPath mailing list.
+# Relates to system issues outside of the user's control.  In the case of an error, a generic failure status file is
+# available and an email is posted to the EuPath mailing list with more detail.  In the case of a warning, a success
+# status file is available but an email containing the warning is sent to the EuPath mailing list.
 acSystemIssue(*identifier, *subject, *warning, *error) {
     if(*error != 'warning') {
         writeLine("serverLog", "Error *subject - *identifier : *error");
@@ -367,4 +393,12 @@ checkForCollectionExistence(*collection) = {
 	  *count = int(*result.COLL_NAME);
 	}
     *count > 0;
+}
+
+getLiterals() = {
+  *literals.homePath = "/ebrc/workspaces";
+  *literals.flagsPath = "*literals.homePath/flags";
+  *literals.landingZonePath = "*literals.homePath/lz";
+  writeLine("serverLog","Literals: *literals");
+  *literals;
 }
