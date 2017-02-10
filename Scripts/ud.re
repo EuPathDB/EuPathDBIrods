@@ -10,6 +10,7 @@ acPostProcForPut {
 	*literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
 	# if a properly composed txt file is put into the landing zone, find the corresponding tarball and upack it.
+	writeLine("serverLog","File dir is *fileDir - does it match *literals.flagsPath");
 	if(*fileDir == *literals.flagsPath && *fileName like regex "dataset_u.*_t.*[.]txt") then {
 		*tarballName = trimr(*fileName,".") ++ ".tgz";
 		acLandingZonePostProcForPut(*literals.landingZonePath, *tarballName);
@@ -397,8 +398,8 @@ checkForCollectionExistence(*collection) = {
 
 getLiterals() = {
   *literals.homePath = "/ebrc/workspaces";
-  *literals.flagsPath = "*literals.homePath/flags";
-  *literals.landingZonePath = "*literals.homePath/lz";
+  *literals.flagsPath = *literals.homePath ++ "/flags";
+  *literals.landingZonePath = *literals.homePath ++ "/lz";
   writeLine("serverLog","Literals: *literals");
   *literals;
 }
