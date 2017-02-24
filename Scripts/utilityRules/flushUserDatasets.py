@@ -57,6 +57,10 @@ def main():
     session = Popen(['irule', '-F', rule])
     print session.communicate()
 
+    rule = "%s/%s" % (utility_file_folder, "deleteExternalDatasets.r")
+    session = Popen(['irule', '-F', rule])
+    print session.communicate()
+
     # This must run after the other rules because the act of deleting datasets spawns events
     rule = "%s/%s" % (utility_file_folder, "emptyEventsCollection.r")
     session = Popen(['irule', '-F', rule])
