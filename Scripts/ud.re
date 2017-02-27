@@ -16,11 +16,11 @@ acPostProcForPut {
 		acLandingZonePostProcForPut(*literals.landingZonePath, *tarballName);
 	}
 	# if a file is put into the sharedWith directory of a dataset, report it
-	else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
-		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "grant");
-	}
+	#else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
+	#	acSharingPostProcForPutOrDelete(*fileDir, *fileName, "grant");
+	#}
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
-		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "create")
+		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "grant")
 	}
 }
 
@@ -35,11 +35,11 @@ acPostProcForDelete {
     writeLine("serverLog", "PEP acPostProcForDelete - $objPath");
     literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
-	if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
-		acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
-	}
-	else if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
-		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "delete")
+	#if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
+	#	acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
+	#}
+	if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
+		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "revoke")
 	}
 }
 
@@ -190,16 +190,18 @@ acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
     acTriggerEvent();
 }
 
-# externalDataset projects user_dataset_id ud_type_name ud_type_version user_id create/delete
+# externalDataset projects user_dataset_id ud_type_name ud_type_version owner_id recipient_id create/delete
 acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
+    msiSplitPath(*fileDir, *recipientPath, *trash);
+    msiSplitPath(*recipientPath, *trashPath, *recipientId);
 	*ownerId = trimr(*fileName,".");  # expected fileName in the form ownerId.externalDatasetId
 	*externalDatasetId = triml(*fileName,".");
-	writeLine("serverLog", "Owner id is *ownerId and External Dataset id is *externalDatasetId");
+	writeLine("serverLog", "Owner id is *ownerId, Recipient id is *recipientId and External Dataset id is *externalDatasetId");
 	
     # Fabricate an external dataset event.
 	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId"; 
     acGetDatasetConfigFileContent(*ownerDatasetPath, *pairs)
-    *content = "externalDataset\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *action ++ "\n";
+    *content = "share\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
     acPostEvent(*content);
     acTriggerEvent();
 }
