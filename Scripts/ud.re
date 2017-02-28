@@ -15,10 +15,7 @@ acPostProcForPut {
 		*tarballName = trimr(*fileName,".") ++ ".tgz";
 		acLandingZonePostProcForPut(*literals.landingZonePath, *tarballName);
 	}
-	# if a file is put into the sharedWith directory of a dataset, report it
-	#else if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
-	#	acSharingPostProcForPutOrDelete(*fileDir, *fileName, "grant");
-	#}
+	# if a file is put into the external datasets directory of a recipient user, report it
 	else if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
 		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "grant")
 	}
@@ -33,11 +30,9 @@ acDataDeletePolicy {
 # Note that this event hook responds to irm -f only.  
 acPostProcForDelete {
     writeLine("serverLog", "PEP acPostProcForDelete - $objPath");
-    literals = getLiterals();
+    *literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
-	#if(*fileDir like regex "/ebrc/workspaces/users/.*/datasets/.*/sharedWith") then {
-	#	acSharingPostProcForPutOrDelete(*fileDir, *fileName, "revoke");
-	#}
+	writeLine("serverLog", "File dir -  *fileDir and file name is *fileName");
 	if(*fileDir like regex "/ebrc/workspaces/users/.*/externalDatasets") then {
 		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "revoke")
 	}
