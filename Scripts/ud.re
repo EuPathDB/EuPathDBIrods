@@ -66,6 +66,8 @@ acPostProcForCreate {
 # where the userId is extracted from the tarball name and the dataset id is the data id given by irods to this particular file.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
 
+    *literals = getLiterals();
+
 	# insure the the user id is a positive number
 	writeLine("serverLog", "Checking user id");
 	*userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
@@ -103,7 +105,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    # Unpack the tarball into staging area.  The tarball $dataId will identify the dataset collection.
 	    # Done first to staging to verify integrity of tarball since removing a bad dataset collection from
 	    # the user's collection of datasets will trigger a PEP.  This approach avoids that.
-	    *stagingDatasetPath = "/ebrc/workspaces/staging/$dataId";
+	    *stagingDatasetPath = *literals.stagingAreaPath ++ "/$dataId";
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
   	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
@@ -113,6 +115,14 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	          writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
   	          msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	        }
+  	    }
+
+  	    # re-check site of user's new unpacked dataset to see whether the size, when added to the
+  	    # current workspace, will put the user over quota.
+  	    *datasetSize = getCollectionSize(*stagingDatasetPath);
+  	    if(*datasetSize + *collectionSize > *defaultQuota) {
+  	      acUserIssue(trimr(*fileName,"."), *message);
+  	      msiGoodFailure;
   	    }
 
   	    # Get the data needed to create an event from the dataset configuration file.
@@ -264,14 +274,15 @@ acGetDatasetConfigFileContent(*userDatasetPath, *content) {
 # Since iRODS microservices only return timestamps in seconds, we are resorting to a
 # python call to get the timestamp in milliseconds (could have been a shell call)
 acPostEvent(*eventContent) {
-    msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
-    msiGetStdoutInExecCmdOut(*Result,*Out);
-    *fileName = "event_*Out.txt";
-    *eventPath = "/ebrc/workspaces/events/*fileName";
-    msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
-    msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
-    msiDataObjClose(*eventFileDescriptor,*eventStatus);
-    writeLine("serverLog", "Created event file *fileName");
+  *literals = getLiterals();
+  msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
+  msiGetStdoutInExecCmdOut(*Result,*Out);
+  *fileName = "event_*Out.txt";
+  *eventPath = *literals.eventsPath ++ "/*fileName";
+  msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
+  msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
+  msiDataObjClose(*eventFileDescriptor,*eventStatus);
+  writeLine("serverLog", "Created event file *fileName");
 }
 
 # Returns the integer size, in bytes, of the datasets currently in the user's workspace.
@@ -286,7 +297,8 @@ acGetWorkspaceUsed(*userId, *collectionSize) {
 # Returns the integer default quota size in bytes.  The assumption is this file contains only a number (digits only)
 # in bytes, followed by a newline.
 acGetDefaultQuota(*defaultQuota) {
-    *quotaFile = "/ebrc/workspaces/users/default_quota";
+    *literals = getLiterals();
+    *quotaFile = *literals.defaultQuotaPath;
     acGetDataObjectSize(*quotaFile, *quotaFileSize)
     msiDataObjOpen("objPath=*quotaFile++++replNum=0++++openFlags=O_RDONLY", *quotaFileDescriptor);
 	msiDataObjRead(*quotaFileDescriptor, *quotaFileSize, *quotaData);
@@ -393,12 +405,17 @@ checkForCollectionExistence(*collection) = {
     *count > 0;
 }
 
+# A collection of literals for paths through the workspace done in an effort
+# to keep these literals in one place.
 getLiterals() = {
   *literals.homePath = "/ebrc/workspaces";
+  *literals.stagingAreaPath = *literals.homePath ++ "/staging";
   *literals.flagsPath = *literals.homePath ++ "/flags";
   *literals.usersPath = *literals.homePath ++ "/users";
+  *literals.eventsPath = *literals.homePath ++ "/events";
+  *literals.defaultQuotaPath = *literals.usersPath ++ "/default_quota";
   *literals.landingZonePath = *literals.homePath ++ "/lz";
-  writeLine("serverLog","Literals: *literals");
+  #writeLine("serverLog","Literals: *literals");
   *literals;
 }
 
