@@ -276,12 +276,12 @@ acPostEvent(*eventContent) {
 
 # Returns the integer size, in bytes, of the datasets currently in the user's workspace.
 acGetWorkspaceUsed(*userId, *collectionSize) {
-    *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '/ebrc/workspaces/users/*userId/datasets/%';
-    *collectionSize = 0;
-	foreach(*result in *results) {
-	    *collectionSize = int(*result.DATA_SIZE);
-	}
+    *literals = getLiterals();
+    *collection = *literals.usersPath ++ "/*userId";
+    *collectionSize = getCollectionSize(*collection);
+    writeLine("serverLog","Workspace collection size for *collection is *collectionSize bytes");
 }
+
 
 # Returns the integer default quota size in bytes.  The assumption is this file contains only a number (digits only)
 # in bytes, followed by a newline.
@@ -396,7 +396,19 @@ checkForCollectionExistence(*collection) = {
 getLiterals() = {
   *literals.homePath = "/ebrc/workspaces";
   *literals.flagsPath = *literals.homePath ++ "/flags";
+  *literals.usersPath = *literals.homePath ++ "/users";
   *literals.landingZonePath = *literals.homePath ++ "/lz";
   writeLine("serverLog","Literals: *literals");
   *literals;
+}
+
+# Convenience method to retrieve the size, in bytes, occupied by a collection.
+getCollectionSize(*collection) = {
+  *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '*collection/%';
+  *collectionSize = 0;
+  # One iteration only expected
+  foreach(*result in *results) {
+    *collectionSize = int(*result.DATA_SIZE);
+  }
+  *collectionSize;
 }
