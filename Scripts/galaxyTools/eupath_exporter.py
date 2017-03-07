@@ -66,12 +66,10 @@ class Export:
         :return:  A tuple containing the url, user, and password, landing zone and flags collection,
          in that order
         """
-        # TODO host, port, username and password will need to go into a configuration file somehow
-        # TODO protocol should be SSL
-        return ("http://wij.vm:8180/irods-rest/rest/fileContents/ebrc/workspaces/",
-                "wrkspuser",
-                "passWORD",
-                "lz", "flags")
+        config_path = self._tool_directory + "/config.json"
+        with open(config_path, "r+") as config_file:
+          config_json = json.load(config_file)
+          return (config_json["url"], config_json["user"], config_json["password"], "lz", "flags")
 
     def validate_datasets(self):
         """
