@@ -119,6 +119,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 
   	    # re-check site of user's new unpacked dataset to see whether the size, when added to the
   	    # current workspace, will put the user over quota.
+  	    writeLine("serverLog", "Checking whether new unpacked user dataset will put user over quota");
   	    *datasetSize = getCollectionSize(*stagingDatasetPath);
   	    if(*datasetSize + *collectionSize > *defaultQuota) {
   	      acUserIssue(trimr(*fileName,"."), *message);
@@ -139,10 +140,10 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    }
 
 	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
-	    writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
-	    acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
-	        *error = setIncidentMessage(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
-	    }
+	    #writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
+	    #acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
+	    #    *error = setIncidentMessage(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
+	    #}
 
   	    # Assemble the line to be posted as an event and post it
   	    writeLine("serverLog", "Posting the new event.");
@@ -327,7 +328,7 @@ acTriggerEvent() {
 	writeLine("serverLog", "Passing *argv");
     msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobResult);
     msiGetStdoutInExecCmdOut(*jobResult, *out);
-	writeLine("serverLog", *out);
+	writeLine("serverLog", "Output from the python call: *out");
 }
 
 # Provides a status flag, with the outcome as part of the flag file name, that provides some insight into the

@@ -143,7 +143,6 @@ class Export:
               "projects": self.identify_projects(),
               "owner": self._user_id,
               "size": size,
-              "modified": self._timestamp,
               "created": self._timestamp
             }, json_file, indent=4)
 
