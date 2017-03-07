@@ -104,7 +104,7 @@ def builderPostScmStep = {
 
   # There will be multiple calls here - a different yaml for each project
   # Directory named after project made user \$GUS_HOME/config when eupathSiteConfigure is run.
-  apiTnsSummary | grep -v amaz-rbld | grep -v pris-rbld | eupathCloneMetaFile "\$BASE_GUS/PlasmoDBMetaConfig.yaml"
+  eupathCloneMetaFile "\$BASE_GUS/PlasmoDBMetaConfig.yaml" -inc projectList.txt
 
   # By convention, all meta config yaml files have this file name suffix.  The prefix is the
   # project id.  Run eupathSiteConfigure for each project in the projectList.txt file.
