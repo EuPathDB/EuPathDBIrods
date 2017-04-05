@@ -15,7 +15,10 @@ import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
+import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventArrayHandler;
 import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventListHandler;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
 /**
@@ -62,23 +65,19 @@ public class BuildEventsFile {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    StringBuilder events = new StringBuilder();
-    List<String> eventList = new ArrayList<>();
+    JSONArray eventJsonArray = new JSONArray();
     for(Path eventFile : eventFiles) {
-      String eventFilename = eventFile.getFileName().toString();
-      // The timestamp used to make each event file unique is extracted from the event filename and
-      // pre-pended to the event content to serve as an event id.
-      String timestamp = eventFilename.substring(eventFilename.indexOf('_') + 1, eventFilename.indexOf('.'));
-      String event = udsa.readFileContents(eventFile);
-      events.append(timestamp + "\t" + event + System.getProperty("line.separator"));
-      eventList.add(timestamp + "\t" + event);
+      if(eventFile.getFileName().toString().endsWith(".json")) {	
+        String event = udsa.readFileContents(eventFile);
+        JSONObject eventJson = new JSONObject(event);
+        eventJsonArray.put(eventJson);
+      }  
     }
-    System.out.println(events.toString());
-    String cmdName = System.getProperty("cmdName");
-    UserDatasetEventListHandler handler = new UserDatasetEventListHandler(cmdName);
+    System.out.println(eventJsonArray.toString());
+    UserDatasetEventArrayHandler handler = new UserDatasetEventArrayHandler();
     handler.setProjectId(projectId);
     Path tmpDir =  Paths.get(handler.getWdkTempDirName());
-    handler.handleEventList(UserDatasetEventListHandler.parseEventsList(eventList),
+    handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
         modelConfig.getUserDatasetStoreConfig().getTypeHandlers(), tmpDir);
   }
 
