@@ -2,7 +2,9 @@
 # /etc/irods/server_config.json (need sudo) as follows:
 # "re_rulebase_set": [{"filename": "ud"},{"filename":"core"}] there could be other rule sets
 
+
 # -------------------- PEP Overrides ----------------- #
+
 
 # Custom event hook for user dataset post processiong following an iput
 acPostProcForPut {
@@ -21,10 +23,12 @@ acPostProcForPut {
 	}
 }
 
+
 # Custom event hook for determining what can be deleted 
 acDataDeletePolicy {
 	writeLine("serverLog", "PEP acDataDeletePolicy - $objPath");
 }
+
 
 # Custom event hook for user dataset post processing following the irm of a data object
 # Note that this event hook responds to irm -f only.  
@@ -37,6 +41,7 @@ acPostProcForDelete {
 		acExternalPostProcForPutOrDelete(*fileDir, *fileName, "revoke")
 	}
 }
+
 
 # Custom event hook for user dataset pre-processiong preceding an irm of a collection
 acPreprocForRmColl {
@@ -52,18 +57,25 @@ acPreprocForRmColl {
 	}
 }
 
+
 acPostProcForCreate {
   writeLine("serverLog", "PEP acPostProcForCreate - $objPath");
 }
 
+
 # -------------------- Supporting Actions ----------------- #
+
 
 # This action is called by the acPostProcForPut action whenever a tgz file is deposited in
 # the landing zone for user datasets.  It takes the collection name and the data object name
 # as inputs.  The data object name is expected in the form 'dataset_u\d+_t\d+.tgz'.
 # The _u\d+ portion defines the user id and the _t\d+ is a timestamp or some other
-# mechanism for making the file unique.  The tarball is unpacked in /ebrc/workspaces/users/<userId>/datasets<datasetId>
-# where the userId is extracted from the tarball name and the dataset id is the data id given by irods to this particular file.
+# mechanism for making the file unique.  The tarball is subject to a limited validation and
+# is unpacked first into a staging area.  If all goes well, the tarball is then unpacked in
+# /ebrc/workspaces/users/<userId>/datasets<datasetId> where the userId is extracted from the tarball
+# name and the dataset id is the data id given by irods to this particular file.  Once done, an event
+# is created in json format which expands upon the dataset.json data by including the event (i.e., 'install')
+# and the dataset id.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
 
     *literals = getLiterals();
@@ -126,29 +138,26 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	      msiGoodFailure;
   	    }
 
-  	    # Get the data needed to create an event from the dataset configuration file.
-  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
-	    acGetDatasetConfigFileContent(*stagingDatasetPath, *pairs) ::: {
-	        *error = setIncidentMessage(*error, "Unable to retrieve content from the dataset's dataset.json file.");
+        # Create a new install event content in json format (action and recipient id do not apply here)
+	    writeLine("serverLog", "Generating the install event data");
+	    acGenerateEventJson(*stagingDatasetPath, "install", $dataId, "", "", *eventContent) ::: {
+	        *error = setIncidentMessage(*error, "Unable to generate json content for the event file.");
 	    }
 
 	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
 	    # that the tarball is unpackable and contains a dataset.json file.
+	    writeLine("serverLog", "Unpacking the tarball into the user's datasets collection");
 	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
 	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the user's datasets collection.\n
 	        Any leftover may compromise the GUI.");
 	    }
 
-	    # Add the uploaded timestamp to the dataset configuration data object belonging to the newly added dataset.
-	    #writeLine("serverLog", "Updating the dataset configuration file data with the upload timestamp");
-	    #acOverwriteDatasetConfigFileContent(*userDatasetPath, *pairs.modifiedContent) ::: {
-	    #    *error = setIncidentMessage(*error, "Unable to overwrite the dataset.json in the user's datasets collection.\nThis incident could compromise the GUI.");
-	    #}
-
-  	    # Assemble the line to be posted as an event and post it
-  	    writeLine("serverLog", "Posting the new event.");
-	    *content = "install\t" ++ *pairs.projects ++ "\t$dataId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *pairs.owner_user_id ++ "\t" ++ *pairs.dependency ++ " " ++ *pairs.dependency_version ++ "\n";
-	    acPostEvent(*content) ::: {
+        # Post the new json formatted install event
+        writeLine("serverLog", "Posting the new install event in json format.");
+	    *event = *eventContent.event;
+	    *eventFileName = *eventContent.event_file_name;
+	    writeLine("serverLog", "Event content to be posted is *event");
+	    acPostNewEvent(*event, *eventFileName) ::: {
 	        *error = setIncidentMessage(*error, "Unable to post the install event.");
 	    }
 
@@ -179,60 +188,72 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	acCreateCompletionFlag(trimr(*fileName,"."), *message, "success")
 }
 
-# This action is called by the acPostProcForPut action whenever a data object with a name corresponding to a share
-# recipient is put into a dataset's sharedWith collection or removed from it.  The action creates an event in the events
-# folder with the following tab-delimited data:
-# share projects user_dataset_id ud_type_name ud_type_version user_id grant or revoke
-acSharingPostProcForPutOrDelete(*fileDir, *recipientId, *action) {
-    msiSplitPath(*fileDir, *userDatasetPath, *trash);
-    writeLine("serverLog", "User dataset is *userDatasetPath");
-    msiSplitPath(*userDatasetPath, *parent, *datasetId);
-    writeLine("serverLog", "Recipient is *recipientId and Dataset is *datasetId");
-  
-    # Fabricate a share event.
-    acGetDatasetConfigFileContent(*userDatasetPath, *pairs)
-    *content = "share\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
-    acPostEvent(*content);
-    acTriggerEvent();
-}
 
-# externalDataset projects user_dataset_id ud_type_name ud_type_version owner_id recipient_id create/delete
+# This action is called by the acPostProcForPut action or the acPostProcForDelete action whenever a user
+# grants or revokes a share to an owned dataset.  The WDK web service handles the placement or removal of the
+# share via Jargon.  This action is called in response to that and simply provides a json formatted event
+# to Jenkins to insure that the Oracle database is made consistent with this change.  The event extends
+# dataset.json with the event (i.e., 'share'), the action (i.e., 'grant' or 'revoke'), the dataset that
+# is the subject of the share event and the user id of the recipient of the share event.
 acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
+    writeLine("serverLog", "acExternalPostProcForPutOrDelete for *action of *fileName from *fileDir");
+
+    # Identify the user id of the recipient
     msiSplitPath(*fileDir, *recipientPath, *trash);
     msiSplitPath(*recipientPath, *trashPath, *recipientId);
-	*ownerId = trimr(*fileName,".");  # expected fileName in the form ownerId.externalDatasetId
+
+    # The name of the file that was added/removed is expected to be in the form ownerId.externalDatasetId
+	*ownerId = trimr(*fileName,".");
 	*externalDatasetId = triml(*fileName,".");
 	writeLine("serverLog", "Owner id is *ownerId, Recipient id is *recipientId and External Dataset id is *externalDatasetId");
 	
     # Fabricate an external dataset event.
-	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId"; 
-    acGetDatasetConfigFileContent(*ownerDatasetPath, *pairs)
-    *content = "share\t" ++ *pairs.projects ++ "\t*externalDatasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\t" ++ *ownerId ++ "\t" ++ *recipientId ++ "\t" ++ *action ++ "\n";
-    acPostEvent(*content);
-    acTriggerEvent();
+	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId";
+
+    # Create a new event content in json format
+	writeLine("serverLog", "Generating the share (*action) event data");
+	acGenerateEventJson(*ownerDatasetPath, "share", *externalDatasetId, *action, *recipientId, *eventContent);
+
+    # Post the new json formatted share event
+    writeLine("serverLog", "Posting the new share (*action) event in json format.");
+    *event = *eventContent.event;
+	*eventFileName = *eventContent.event_file_name;
+	writeLine("serverLog", "Event content to be posted is *event");
+	acPostNewEvent(*event, *eventFileName);
+
+	acTriggerEvent();
 }
 
-# Called before a dataset is removed.  Reads and parses the dataset.json to get the data needed to create
-# an event data object.  The single line posted to the event object is composed as follows:
-# content:  uninstall projects user_dataset_id ud_type_name ud_type_version
+
+# This action is called by the acPreprocForRmColl action just before a dataset is removed.  The
+# WDK web service handles the removal the the subject dataset collection.  This action is called
+# in response to that and simply provides a json formatted event to Jenkins to insure that the
+# Oracle database is made consistent with this change.  The event extends dataset.json with the
+# event (i.e., 'uninstall') and id of the dataset to be deleted.
 acDatasetPreprocForRmColl() {
+    writeLine("serverLog", "acDatasetPreprocForRmColl for $collName");
+
+    # Extract the dataset id from the collection path provided.
 	msiSplitPath($collName, *parent, *datasetId);
 
     # Both the warning and error messages are initialized to empty strings in preparation.
     *warning = "";
     *error = "";
     {
-	    # Get the data needed to create an event from the dataset configuration file.
-  	    writeLine("serverLog", "Obtaining the dataset configuration file data.");
-	    acGetDatasetConfigFileContent($collName, *pairs) ::: {
+        # Create a new uninstall event content in json format
+	    writeLine("serverLog", "Generating the uninstall event data");
+	    acGenerateEventJson($collName, "uninstall", *datasetId, "", "", *eventContent) ::: {
+	        *error = setIncidentMessage(*error, "Unable to generate the uninstall event content.");
 	    }
 
-	    # Assemble the line to be posted as an event and post it
-  	    writeLine("serverLog", "Posting the new event.");
-	    *content = "uninstall\t" ++ *pairs.projects ++ "\t*datasetId\t" ++ *pairs.ud_type_name ++ "\t" ++ *pairs.ud_type_version ++ "\n";
-	    acPostEvent(*content) ::: {
+	    # Post the new json formatted uninstall event
+        writeLine("serverLog", "Posting the new uninstall event in json format.");
+        *event = *eventContent.event;
+	    *eventFileName = *eventContent.event_file_name;
+	    writeLine("serverLog", "Event content to be posted is *event");
+	    acPostNewEvent(*event, *eventFileName) ::: {
 	        *error = setIncidentMessage(*error, "Unable to post the uninstall event.");
-        }
+	    }
 
 	    # Make a RESTful call to Jenkins to process the contents of the events collection.
 	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
@@ -243,47 +264,21 @@ acDatasetPreprocForRmColl() {
 	        A later scheduled run should pick up the install event.");
 	    }
 	} ::: {
-	    acSystemIssue(trimr(*datasetId,"."), "IRODS acPreprocForRmColl", *warning, *error);
+	    acSystemIssue(trimr(*datasetId, "."), "IRODS acPreprocForRmColl", *warning, *error);
 	}
 }
 
 # ------------------------- Utilities --------------------- #
 
-# Retrieves the dataset.json content in the form of key/value pairs that are digestable via the iRODS microservices.
-# *userDatasetPath - input - absolute path to the dataset of interest (/ebrc/workspaces/users/<userid>/datasets/<datasetid)
-# *content - output - a string containing key/value pairs
-# In addition to the dataset.json content and system timestamp in milliseconds is returned to provide a unique identifier
-# for any subsequent file holding this content
-# TODO:  Perhaps the timestamp long int retrieval should be split off into a separate python script for separation of
-# concerns.
-acGetDatasetConfigFileContent(*userDatasetPath, *content) {
-	*datasetConfigFile = "*userDatasetPath/dataset.json";
-	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
-	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
-	msiDataObjRead(*datasetConfigFileDescriptor, *datasetConfigFileSize, *datasetConfigData);
-	# Escapes the double quotes so that the content is transmitted as an intact single string.
-	*datasetConfigDataArg = execCmdArg(str(*datasetConfigData));
-	msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
-	msiExecCmd("datasetParser.py", *datasetConfigDataArg,"null","null","null",*datasetConfigResult);
-	msiGetStdoutInExecCmdOut(*datasetConfigResult, *out);
-	msiString2KeyValPair(*out, *content);
-}
-
-# This rule posts the content provided to a new event data object in the events
-# collection.  The use of systemTime in the event data object name may not be sufficient
-# to insure uniqueness.  May need to obtain something from the caller to help insure that.
-# Since iRODS microservices only return timestamps in seconds, we are resorting to a
-# python call to get the timestamp in milliseconds (could have been a shell call)
-acPostEvent(*eventContent) {
+# This action posts the event json object to a json file in the events
+# collection.  The (hopefully) unique file name is provided.
+acPostNewEvent(*event, *eventFileName) {
   *literals = getLiterals();
-  msiExecCmd("produceTimestamp.py","null","null","null","null",*Result);
-  msiGetStdoutInExecCmdOut(*Result,*Out);
-  *fileName = "event_*Out.txt";
-  *eventPath = *literals.eventsPath ++ "/*fileName";
+  *eventPath = *literals.eventsPath ++ "/*eventFileName";
   msiDataObjCreate(*eventPath,"null",*eventFileDescriptor);
-  msiDataObjWrite(*eventFileDescriptor,*eventContent,*fileLength);
+  msiDataObjWrite(*eventFileDescriptor,*event,*fileLength);
   msiDataObjClose(*eventFileDescriptor,*eventStatus);
-  writeLine("serverLog", "Created event file *fileName");
+  writeLine("serverLog", "Created event file *eventFileName");
 }
 
 # Returns the integer size, in bytes, of the datasets currently in the user's workspace.
@@ -291,7 +286,7 @@ acGetWorkspaceUsed(*userId, *collectionSize) {
     *literals = getLiterals();
     *collection = *literals.usersPath ++ "/*userId";
     *collectionSize = getCollectionSize(*collection);
-    writeLine("serverLog","Workspace collection size for *collection is *collectionSize bytes");
+    writeLine("serverLog", "Workspace collection size for *collection is *collectionSize bytes");
 }
 
 
@@ -308,19 +303,36 @@ acGetDefaultQuota(*defaultQuota) {
 	*defaultQuota = int(*defaultQuota);
 }
 
-# The dataset configuration file is re-written to include
-acOverwriteDatasetConfigFileContent(*userDatasetPath, *content) {
-    writeLine("serverLog", "Overwrite the original dataset configuration file with updated content.");
+# This action takes the dataset.json file found in the path given by the first argument and uses that as a
+# template for creating event content.  That json data along with the event, the dataset id, and any
+# action or recipient information is sent to a python script that re-composes the json object with the
+# additional information.  The result returned is a key/value pair set where the keys include the event
+# itelf (in json format) and the name of the event file (where the timestamp used to hopefully make
+# the event file unique is provided by that python script).
+acGenerateEventJson(*userDatasetPath, *event, *datasetId, *action, *recipient, *eventContent) {
+    writeLine("serverLog", "acGenerateEventJson for *userDatasetPath, *event, *datasetId, *action, *recipient");
     *datasetConfigFile = "*userDatasetPath/dataset.json";
-    msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDWRO_TRUNC", *datasetConfigFileDescriptor);
-    msiDataObjWrite(*datasetConfigFileDescriptor, *content, *datasetConfigFileSize);
-    msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
+	acGetDataObjectSize(*datasetConfigFile, *datasetConfigFileSize);
+	msiDataObjOpen("objPath=*datasetConfigFile++++replNum=0++++openFlags=O_RDONLY", *datasetConfigFileDescriptor);
+	msiDataObjRead(*datasetConfigFileDescriptor, *datasetConfigFileSize, *datasetConfigData);
+	# Escapes the double quotes so that the content is transmitted as an intact single string.
+	*datasetConfigDataStr = execCmdArg(str(*datasetConfigData));
+	msiDataObjClose(*datasetConfigFileDescriptor, *datasetConfigFileStatus);
+	*eventStr = execCmdArg(str(*event));
+	*datasetIdStr = execCmdArg(str(*datasetId));
+	*actionStr = execCmdArg(str(*action));
+	*recipientStr = execCmdArg(str(*recipient));
+	*argStr = '*datasetConfigDataStr  *eventStr *datasetIdStr *actionStr *recipientStr';
+	msiExecCmd("eventGenerator.py",*argStr,"null","null","null",*eventOutput);
+	msiGetStdoutInExecCmdOut(*eventOutput, *eventOut);
+	msiString2KeyValPair(*eventOut, *eventContent);
 }
 
-# Fires off the RESTful call to Jenkins to process the event file.  The jobFile provides the data needed to call
+# Fires off the RESTful call to Jenkins to process the event file.  The jobFile variable provides the data needed to call
 # Jenkins.
 acTriggerEvent() {
-	*jobFile = "/ebrc/workspaces/jenkinsCommunicationConfig.txt";
+    *literals = getLiterals();
+	*jobFile = *literals.jobFilePath;
 	acGetDataObjectSize(*jobFile, *jobFileSize);
 	msiDataObjOpen("objPath=*jobFile++++replNum=0++++openFlags=O_RDONLY", *jobFileDescriptor);
 	msiDataObjRead(*jobFileDescriptor, *jobFileSize, *jobData);
@@ -416,6 +428,7 @@ getLiterals() = {
   *literals.eventsPath = *literals.homePath ++ "/events";
   *literals.defaultQuotaPath = *literals.usersPath ++ "/default_quota";
   *literals.landingZonePath = *literals.homePath ++ "/lz";
+  *literals.jobFilePath = *literals.homePath ++ "/jenkinsCommunicationConfig.txt";
   #writeLine("serverLog","Literals: *literals");
   *literals;
 }
