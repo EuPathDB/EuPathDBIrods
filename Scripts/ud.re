@@ -210,18 +210,37 @@ acExternalPostProcForPutOrDelete(*fileDir, *fileName, *action) {
     # Fabricate an external dataset event.
 	*ownerDatasetPath = "/ebrc/workspaces/users/*ownerId/datasets/*externalDatasetId";
 
-    # Create a new event content in json format
-	writeLine("serverLog", "Generating the share (*action) event data");
-	acGenerateEventJson(*ownerDatasetPath, "share", *externalDatasetId, *action, *recipientId, *eventContent);
+    # Both the warning and error messages are initialized to empty strings in preparation.
+    *warning = "";
+    *error = "";
+    {
 
-    # Post the new json formatted share event
-    writeLine("serverLog", "Posting the new share (*action) event in json format.");
-    *event = *eventContent.event;
-	*eventFileName = *eventContent.event_file_name;
-	writeLine("serverLog", "Event content to be posted is *event");
-	acPostNewEvent(*event, *eventFileName);
+        # Create a new event content in json format
+	    writeLine("serverLog", "Generating the share (*action) event data");
+	    acGenerateEventJson(*ownerDatasetPath, "share", *externalDatasetId, *action, *recipientId, *eventContent) ::: {
+	        *error = setIncidentMessage(*error, "Unable to generate the share event content.");
+	    }
 
-	acTriggerEvent();
+        # Post the new json formatted share event
+        writeLine("serverLog", "Posting the new share (*action) event in json format.");
+        *event = *eventContent.event;
+	    *eventFileName = *eventContent.event_file_name;
+	    writeLine("serverLog", "Event content to be posted is *event");
+	    acPostNewEvent(*event, *eventFileName) ::: {
+	        *error = setIncidentMessage(*error, "Unable to post the share event.");
+	    }
+
+        # Make a RESTful call to Jenkins to process the contents of the events collection.
+	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
+	    acTriggerEvent() ::: {
+	        *error = "warning";
+	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
+	        Jenkins may be offline or the listener job maybe disabled.\n
+	        A later scheduled run should pick up the install event.");
+	    }
+	} ::: {
+	    acSystemIssue(trimr(*externalDatasetId, "."), "IRODS acPostProcForPut/acPostProcForDelete", *warning, *error);
+	}
 }
 
 
@@ -323,12 +342,19 @@ acGenerateEventJson(*userDatasetPath, *event, *datasetId, *action, *recipient, *
 	*actionStr = execCmdArg(str(*action));
 	*recipientStr = execCmdArg(str(*recipient));
 	*argStr = '*datasetConfigDataStr  *eventStr *datasetIdStr *actionStr *recipientStr';
-	msiExecCmd("eventGenerator.py",*argStr,"null","null","null",*eventOutput);
+
+	# Done this way to identify any issues with the python script
+	*status = errorcode(msiExecCmd("eventGenerator.py",*argStr,"null","null","null",*eventOutput));
+	if(*status != 0) {
+	    msiGetStdoutInExecCmdOut(*eventOutput, *eventOut);
+	    writeLine("serverLog", "Error:  *eventOut");
+	    msiGoodFailure;
+	}
 	msiGetStdoutInExecCmdOut(*eventOutput, *eventOut);
 	msiString2KeyValPair(*eventOut, *eventContent);
 }
 
-# Fires off the RESTful call to Jenkins to process the event file.  The jobFile variable provides the data needed to call
+# Fires off the RESTful call to Jenkins to process the event collection.  The jobFile variable provides the data needed to call
 # Jenkins.
 acTriggerEvent() {
     *literals = getLiterals();
@@ -338,9 +364,16 @@ acTriggerEvent() {
 	msiDataObjRead(*jobFileDescriptor, *jobFileSize, *jobData);
     *argv = str(*jobData);
 	writeLine("serverLog", "Passing *argv");
-    msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobResult);
-    msiGetStdoutInExecCmdOut(*jobResult, *out);
-	writeLine("serverLog", "Output from the python call: *out");
+
+	# Done this way to identify any issues with the python script
+    *status = errorcode(msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobOutput));
+	if(*status != 0) {
+	    msiGetStdoutInExecCmdOut(*jobOutput, *jobOut);
+	    writeLine("serverLog", "Error:  *jobOut");
+	    msiGoodFailure;
+	}
+    msiGetStdoutInExecCmdOut(*jobOutput, *jobOut);
+	writeLine("serverLog", "Output from the python call: *jobOut");
 }
 
 # Provides a status flag, with the outcome as part of the flag file name, that provides some insight into the
