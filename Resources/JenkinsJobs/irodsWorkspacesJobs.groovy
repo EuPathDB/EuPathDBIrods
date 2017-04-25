@@ -171,7 +171,7 @@ job('irods-builder') {
       location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonData/trunk') {
         directory('project_home/ApiCommonData')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EuPathSiteCommon/trunk') {
+      location('https://www.cbil.upenn.edu/svn/apidb/EbrcWebsiteCommon/trunk') {
         directory('project_home/EuPathSiteCommon')
       }
       location('https://www.cbil.upenn.edu/svn/apidb/DoTS/trunk') {
@@ -183,10 +183,10 @@ job('irods-builder') {
       location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonWebsite/trunk') {
         directory('project_home/ApiCommonWebsite')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EuPathWebSvcCommon/trunk') {
+      location('https://www.cbil.upenn.edu/svn/apidb/EbrcWebSvcCommon/trunk') {
         directory('project_home/EuPathWebSvcCommon')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonShared/trunk') {
+      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonModel/trunk') {
         directory('project_home/ApiCommonShared')
       }
       location('https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk') {
