@@ -45,9 +45,9 @@
 	<!-- TODO add ApiCommonData-Installation on a richer vagrant -->
   <target name="EuPathDBIrods-Installation" depends="
                                            WDK-Installation,
-  	                                       ApiCommonShared-Installation,
+  	                                       ApiCommonModel-Installation,
   	                                       ApiCommonData-Installation,
-  	                                       EuPathSiteCommon-Installation,
+  	                                       EbrcWebsiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
                                            EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
