@@ -187,7 +187,7 @@ job('irods-builder') {
         directory('project_home/EbrcWebSvcCommon')
       }
       location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonModel/trunk') {
-        directory('project_home/ApiCommonShared')
+        directory('project_home/ApiCommonModel')
       }
       location('https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk') {
         directory('project_home/EuPathDBIrods')
