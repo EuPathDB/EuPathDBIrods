@@ -5,8 +5,8 @@
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <import file="${projectsDir}/WDK/build.xml" />
-	<import file="${projectsDir}/EuPathSiteCommon/build.xml" />
-	<import file="${projectsDir}/ApiCommonShared/build.xml" />
+	<import file="${projectsDir}/EbrcWebsiteCommon/build.xml" />
+	<import file="${projectsDir}/ApiCommonModel/build.xml" />
 	<import file="${projectsDir}/ApiCommonData/build.xml" />
 
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
