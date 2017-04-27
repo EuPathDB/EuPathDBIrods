@@ -1,7 +1,6 @@
 package org.apidb.irods;
 
 import java.io.IOException;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -63,8 +62,8 @@ public class BuildEventsFile {
     ModelConfigUserDatasetStore dsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
     JSONArray eventJsonArray = new JSONArray();
-    try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {		
-      if(!dsSession.getUserDatasetStoreId().equals(datasetStoreId)) {
+    try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {
+      if(!dsStore.getId().equals(datasetStoreId)) {
         throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
       }
     

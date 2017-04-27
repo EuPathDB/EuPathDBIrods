@@ -87,13 +87,14 @@ public class BuildJenkinsCommunicationFile {
   	  throw new RuntimeException(e);
   	}
     StringBuilder contents = new StringBuilder();
+
     ModelConfigUserDatasetStore dsConfig = modelConfig.getUserDatasetStoreConfig();
     UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
     try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {	
     
       // The dataset store id is tacked onto the file being created so that it may be used to insure
       // that the IRODS instance using this file is that of the IRODS instance described in the file.
-      String userDatasetStoreId = dsSession.getUserDatasetStoreId();
+      String userDatasetStoreId = dsStore.getId();
       contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId);
 	  UserDatasetStoreAdaptor dsAdaptor = dsSession.getUserDatasetStoreAdaptor();
 
