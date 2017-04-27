@@ -2,8 +2,6 @@ package org.apidb.irods;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.commons.cli.CommandLine;
@@ -17,6 +15,7 @@ import org.gusdb.wdk.model.WdkModelException;
 import org.gusdb.wdk.model.config.ModelConfig;
 import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
+import org.gusdb.wdk.model.user.dataset.UserDatasetSession;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
 import org.xml.sax.SAXException;
@@ -88,19 +87,23 @@ public class BuildJenkinsCommunicationFile {
   	  throw new RuntimeException(e);
   	}
     StringBuilder contents = new StringBuilder();
-    ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
-    UserDatasetStore uds = udsConfig.getUserDatasetStore();
-    // The dataset store id is tacked onto the file being created so that it may be used to insure
-    // that the IRODS instance using this file is that of the IRODS instance described in the file.
-    String userDatasetStoreId = uds.getUserDatasetStoreId();
-    contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId);
-	UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
-	// In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
-	// guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
-	// root directory applies to the users directory, but the Jenkins communication file is sibling to that
-	// directory.  Hence we use a relative address.
-	String userDatasetRootDir = userDatasetStoreId.split("\\|")[0];
-	String topLevelFilePath = userDatasetRootDir + File.separator + "..";
-	udsa.writeFile(Paths.get(topLevelFilePath, JENKINS_COMMUNICATION_FILE), contents.toString(), false);
+    ModelConfigUserDatasetStore dsConfig = modelConfig.getUserDatasetStoreConfig();
+    UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
+    try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {	
+    
+      // The dataset store id is tacked onto the file being created so that it may be used to insure
+      // that the IRODS instance using this file is that of the IRODS instance described in the file.
+      String userDatasetStoreId = dsSession.getUserDatasetStoreId();
+      contents.append(username + "," + password + "," + job + "," + token + "," + userDatasetStoreId);
+	  UserDatasetStoreAdaptor dsAdaptor = dsSession.getUserDatasetStoreAdaptor();
+
+	  // In an effort to avoid hard-coding paths, grabbing the user dataset root dir from the id as it is
+	  // guaranteed to always be the first (possibly only) item of a list of items delimited by a pipe.  The
+	  // root directory applies to the users directory, but the Jenkins communication file is sibling to that
+	  // directory.  Hence we use a relative address.
+	  String userDatasetRootDir = userDatasetStoreId.split("\\|")[0];
+	  String topLevelFilePath = userDatasetRootDir + File.separator + "..";
+	  dsAdaptor.writeFile(Paths.get(topLevelFilePath, JENKINS_COMMUNICATION_FILE), contents.toString(), false);
+    }
   }
 }

@@ -13,6 +13,7 @@ import org.gusdb.wdk.model.WdkModelException;
 import org.gusdb.wdk.model.config.ModelConfig;
 import org.gusdb.wdk.model.config.ModelConfigParser;
 import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
+import org.gusdb.wdk.model.user.dataset.UserDatasetSession;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
 import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventArrayHandler;
@@ -59,35 +60,36 @@ public class BuildEventsFile {
     }
     
     // Insures that the appropriate datastore is calling this method.
-    ModelConfigUserDatasetStore udsConfig = modelConfig.getUserDatasetStoreConfig();
-    UserDatasetStore uds = udsConfig.getUserDatasetStore();
-    if(!uds.getUserDatasetStoreId().equals(datasetStoreId)) {
-      throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
-    }
-    
-    // Collect all the event files from the events folder in the datastore.
-    UserDatasetStoreAdaptor udsa = uds.getUserDatasetStoreAdaptor();
-    List<Path> eventFiles = new ArrayList<>();
-    try {
-      eventFiles = udsa.getPathsInDir(Paths.get(EVENTS_DIR));
-    }
-    catch (WdkModelException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
-    
-    // Read the contents of those json formatted event files into JSON objects and collect
-    // those JSON objects into a JSON array.
+    ModelConfigUserDatasetStore dsConfig = modelConfig.getUserDatasetStoreConfig();
+    UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
     JSONArray eventJsonArray = new JSONArray();
-    for(Path eventFile : eventFiles) {
-      if(eventFile.getFileName().toString().endsWith(".json")) {
-        String event = udsa.readFileContents(eventFile);
-        JSONObject eventJson = new JSONObject(event);
-        eventJsonArray.put(eventJson);
-      }  
-    }
-    logger.info("Events JSON array:" + eventJsonArray.toString());
+    try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {		
+      if(!dsSession.getUserDatasetStoreId().equals(datasetStoreId)) {
+        throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
+      }
     
+      // Collect all the event files from the events folder in the datastore.
+      UserDatasetStoreAdaptor dsAdaptor = dsSession.getUserDatasetStoreAdaptor();
+      List<Path> eventFiles = new ArrayList<>();
+      try {
+        eventFiles = dsAdaptor.getPathsInDir(Paths.get(EVENTS_DIR));
+      }
+      catch (WdkModelException e) {
+        e.printStackTrace();
+        throw new RuntimeException(e);
+      }
+    
+      // Read the contents of those json formatted event files into JSON objects and collect
+      // those JSON objects into a JSON array.
+      for(Path eventFile : eventFiles) {
+        if(eventFile.getFileName().toString().endsWith(".json")) {
+          String event = dsAdaptor.readFileContents(eventFile);
+          JSONObject eventJson = new JSONObject(event);
+          eventJsonArray.put(eventJson);
+        }
+      }
+      logger.info("Events JSON array:" + eventJsonArray.toString());
+    }
     // Create a dataset event handler to further process the resulting events JSON array.
     UserDatasetEventArrayHandler handler = new UserDatasetEventArrayHandler();
     handler.setProjectId(projectId);
