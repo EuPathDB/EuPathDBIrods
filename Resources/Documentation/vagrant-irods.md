@@ -44,7 +44,7 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * The workspace will be in <code>/var/tmp</code>.
   
 ###  Create IRODS scaffold
-  *  A copy of the scaffold is found in the EuPathDBIrods project (<code>cp /vagrant/scratch/EuPathDBIrods/Configurations/scaffold.tar.gz ~</code>).
+  *  A copy of the scaffold is found in the EuPathDBIrods project (<code>cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/scaffold.tar.gz ~.</code>).
   *  Unpack it (<code>tar -xvf scaffold.tar.gz</code>).
   *  Create the scafford (<code>irsync -r workspaces i:/ebrc/workspaces</code>).
   *  This IRODS scraffold has no users to start with but does have a landing zone (lz) and an events folder sibling to users
