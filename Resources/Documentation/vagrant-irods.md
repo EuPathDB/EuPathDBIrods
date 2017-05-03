@@ -52,7 +52,6 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * The remote root directory is <code>/var/tmp</code>.
   * Select for Host Key Verification Strategy, 'Non verifying Verification Strategy'
   * Consult the README.md that comes with the vagrant-wij download as these procedures are subject to change.
-  * The workspace will be in <code>/var/tmp/irods</code>.
   
 ###  Create IRODS scaffold
   *  A copy of the scaffold is found in the EuPathDBIrods project (<code>cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/scaffold.tar.gz ~.</code>).
@@ -66,38 +65,39 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Remember to add a comma where appropriate to insure proper json syntax.
   
 ### Generate Jenkins Jobs
+  * Insure that the Pre SCM BuildStep Plugin is installed.  If not, install it via 'Manage Jenkins | Manage Plugins'. 
   * To generate the Jenkins Jobs, we will follow the procedure described in the <code>JenkinsSetup.md</code> that comes with the vagrant-wij package with a few alterations.
   * Insure that all the needed plugins are installed.
-  * Outside of vagrant, copy the generator script for the irods jobs from the EuPathDBIrods project into the vagrant directory (<code>cp scratch/project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsWorkspacesJobs.groovy .</code>).
-  * Rather than follow pasting the Groovy script described in the markdown document, paste into the Jenkins Script Console (under Manage Jenkins), the script found at <code>project_home/EuPathDBIrods/Resources/JenkinsJobs/irodsJobGenerator.txt</code>.
+  * Set up a seed job using this tutorial (https://github.com/jenkinsci/job-dsl-plugin/wiki/Tutorial---Using-the-Jenkins-Job-DSL) as a guide.
+  * Call the job 'irods-job-generator' and copy the content of <code>/vagrant/scratch/project_home/EuPathDBIrods/JenkinsJobs/irodsWorkspacesJobs.groovy</code> into the script entry area and Save.
+  * On the Jenkins website, run the irods-job-generator.  The build should create an irods-builder, an irods-listener, and as many irods-handler-[project] jobs as there are project supported in the irodsWorkspacesJob.groovy script.
+  * At least 3 new jobs will appear (a builder, a listener, and one handler job per project) 
+ 
+ 
   * That script will create a shared workspace in /var/tmp/jenkins-irods.
-  * In vagrant, become joeuser (<code>sudo su - joeuser</code>) and go to the new workspace (<code>cd /var/tmp/jenkins-irods</code>).
+  * In vagrant, become joeuser (<code>sudo su - joeuser</code>).
   * As joeuser, copy the PlasmoDBMetaConfig.yaml file described earlier into this workspace (e.g.,<code>cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/jenkins-irods/.</code>).
   * As joeuser, copy the gus configuration file (gus.config) into this workspace (e.g., <code>cp /vagrant/scratch/gus.config /var/tmp/jenkins-irods/.</code>).
   * As joeuser, copy the text file containing the supported projects, projectList.txt into this workspace (e.g., <code>cp /vargrant/scratch/projectList.txt /var/tmp/jenkins-irods/.</code>).
-  * On the Jenkins website, run the irods-job-generator.  The build should create an irods-builder, an irods-listener, and as many irods-handler-[project] jobs as there are project supported in the irodsWorkspacesJob.groovy script.
+ 
 
 ### Set Up Subversion
   * Jenkins 2 uses the default SVN version of 1.4.
   * On the Jenkins website (as admin), go to <code>Manage Jenkins ->  Configure System</code> and change the Subversion version to 1.8.
   
 ### Allow DB Connections Through Firewall
-  * Run sshuttle (<code>sshuttle -e 'ssh -o StrictHostKeyChecking=no' -r [user]@spruce.pcbi.upenn.edu 128.91.49.128/24 128.192.0.0/16 > /dev/null 2>&1 &</code>).
+  * As the vagrant user, run sshuttle (<code>sshuttle -e 'ssh -o StrictHostKeyChecking=no' -r [user]@ash.pcbi.upenn.edu 128.91.49.128/24 128.192.0.0/16 > /dev/null 2>&1 &</code>).
   * Insure that a process number is returned.  Remember to do this initially after vagrant up/vagrant ssh or builds will not work.
   
 ### Set Up IRODS Microservices
-  * Copy the file containing the IRODS microservices from the EuPathDBIrods project to the location where IRODS would expect it (<code>sudo /var/tmp/workspace/IrodsBuilder/project_home/EuPathDBIrods/Scripts/ud.re /etc/irods/.</code>).
+  * Copy the file containing the IRODS microservices from the EuPathDBIrods project to the location where IRODS would expect it (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Scripts/ud.re /etc/irods/.</code>).
   * Go to that location (<code>/etc/irods</code>) and change the owner to irods (<code>sudo chown irods.irods /etc/irods/ud.re</code>).
   * In that location, edit the server_config.json file as shown (it may be wise to create a backup first):  
 <code>
 	  "re\_rulebase\_set": [
-	          {
-	              "filename": "ud"
-	          },
-	          {
-	              "filename": "ebrc"
-	          }
-	      ,
+	    "ud",
+	    "ebrc",
+		...
 </code>
 
   * Note that editing must be done also with sudo.
@@ -106,14 +106,14 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Set Up External Python Scripts Used By IRODS Microservices
   * Some of the more involved (for microservices) operations are handled by Python scripts, housed in <code>/var/lib/irods/iRODS/server/bin/cmd</code>, which are executable, and are owned by IRODS.
   * Those scripts are available in the EuPathDBIrods project.
-  * Copy over those scripts (<code>sudo cp /var/tmp/workspace/IrodsBuilder/project_home/EuPathDBIrods/Scripts/remoteExec/*.py /var/lib/irods/iRODS/server/bin/cmd/*.py</code>).
-  * Make them executable (<code>sudo chmod 755 /var/lib/irods/iRODS/server/bin/cmd/*.py</code>)
-  * Make them owned by IRODS (<code>sudo chown irods.irods /var/lib/irods/iRODS/server/bin/cmd/*.py</code>).
+  * Copy over those scripts (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Scripts/remoteExec/*.py /var/lib/irods/msiExecCmd_bin/.</code>).
+  * If not already, make them executable (<code>sudo chmod 755 /var/lib/irods/msiExecCmd_bin/*.py</code>)
+  * Make them owned by IRODS (<code>sudo chown irods.irods /var/lib/irods/msiExecCmd_bin/*.py</code>).
   
 ### Run the IRODS Builder Job
   * This job is parameterized with the username and password/token of the Jenkins user that will be calling the IRODS listener job from within the IRODS ecosystem.
-  * A third parameter, MODE, defaults to Dev.  Put anything else in its place to force a clean and complete rebuild of the shared workspace.  Note that the clean removes gus_home and project_home, but not the template files copies over from <code>/vagrant/scratch</code>.
-  * This job will check out from svn, the 17 projects needed for the other IRODS jobs.
+  * A third parameter, MODE, defaults to Dev.  Put anything else in its place to force a clean and complete rebuild of the shared workspace.  Note that the clean removes everything in the workspace.
+  * This job will check out from svn, the 18 projects needed for the other IRODS jobs.
   * Additionally, the job will use the template files to create model-config.xml and [project].gus.config files for every project supported (as determined by the projectList.txt file).
   * FInally, the job will create the jenkinsCommunicationConfig.txt. It is located in IRODS at <code>/ebrc/workspaces</code> and will be used by one of the python scripts mentioned above to communicate with the IRODS Listener (irods-listener) job on Jenkins.
   * It would be prudent to be sure that file was created and properly placed.
