@@ -46,10 +46,13 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Choose as many executors as you have projects since each listener blocks identical listeners but different listeners can run concurrently.
   * Select for Usage, 'Use this node as much as possible'.
   * Select for Launch method, 'Launch slave agents via SSH'.
+  * The host is localhost.
+  * When Adding creds, use 'joeuser' for the Username, 'SSH Username with private key' as Kind, 'System' as Scope, and 'From the Jenkins master ~/.ssh' as Private Key.
   * Select for Availability, 'Keep this agent online as much as possible'.
   * The remote root directory is <code>/var/tmp</code>.
-  * The node user is joeuser and the node name is irods.  Again consult the link above for a setup guide.
-  * The workspace will be in <code>/var/tmp</code>.
+  * Select for Host Key Verification Strategy, 'Non verifying Verification Strategy'
+  * Consult the README.md that comes with the vagrant-wij download as these procedures are subject to change.
+  * The workspace will be in <code>/var/tmp/irods</code>.
   
 ###  Create IRODS scaffold
   *  A copy of the scaffold is found in the EuPathDBIrods project (<code>cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/scaffold.tar.gz ~.</code>).
