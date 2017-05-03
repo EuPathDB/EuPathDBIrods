@@ -36,10 +36,18 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 ### Set Up a Jenkins User to IRODS Jobs
   * As the admin user, create a wrkspuser (use the same IRODS password for convenience).
   * Log off as admin and log on as wrkspuser.
-  * Go to the configuration page and show and record the API token.  Will need it later.
+  * Go to the user's configuration page and show and record the API token.  Will need it later.
   
 ### Create a Jenkins node for IRODS.
   * This mirrors the typical production Jenkins setup.
+  * The menu path is <code>Manage Jenkins | Manage Nodes | New Node</code>.
+  * The node name is irods.
+  * Select permanent agent and click OK.
+  * Choose as many executors as you have projects since each listener blocks identical listeners but different listeners can run concurrently.
+  * Select for Usage, 'Use this node as much as possible'.
+  * Select for Launch method, 'Launch slave agents via SSH'.
+  * Select for Availability, 'Keep this agent online as much as possible'.
+  * The remote root directory is <code>/var/tmp</code>.
   * The node user is joeuser and the node name is irods.  Again consult the link above for a setup guide.
   * The workspace will be in <code>/var/tmp</code>.
   
