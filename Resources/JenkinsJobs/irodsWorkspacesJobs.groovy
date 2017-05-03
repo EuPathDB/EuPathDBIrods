@@ -55,25 +55,16 @@ def builderPreScmStep = {
     return """
 	# Setup env variables for this build step
 	export BASE_GUS="\$WORKSPACE"
-	export GUS_HOME="\$BASE_GUS/gus_home"
-	export PROJECT_HOME="\$BASE_GUS/project_home"
 
-	# Unless this build is run in development mode, completely remove
-	# gus/project homes in this workspace.  Leaving the templates at
-	# the top level of the worksapce intact for now.
-	if [[ "\$MODE" != "Dev" ]]
-	 then
-	  if [ -d "\$PROJECT_HOME" ]
-	   then
-	    rm -rf "\$PROJECT_HOME"
-	    echo "Removed project home."
-	  fi  
-	  if [ -d "\$GUS_HOME" ]
-	   then
-	    rm -rf "\$GUS_HOME"
-	    echo "Removed gus home."
-	  fi
-	fi
+  # Unless this build is run in development mode, completely remove
+  # everything in this workspace.  Then add back the need templates
+  if [[ "\$MODE" != "Dev" ]]
+    then
+      rm -rf "\$BASE_GUS/*"
+      cp /usr/local/home/joeuser/irods/PlasmoDBMetaConfig.yaml "\$BASE_GUS/."
+      cp /usr/local/home/joeuser/irods/gus.config "\$BASE_GUS/."
+      cp /usr/local/home/joeuser/irods/projectList.txt "\$BASE_GUS/."
+  fi
     """.stripIndent()
 }
 
@@ -141,58 +132,58 @@ job('irods-builder') {
   }
   scm {
     svn {
-      location('https://www.cbil.upenn.edu/svn/gus/install/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/install/trunk') {
         directory('project_home/install')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/WSF/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/WSF/trunk') {
         directory('project_home/WSF')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/TuningManager/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/TuningManager/trunk') {
         directory('project_home/TuningManager')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/WDK/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/WDK/trunk') {
         directory('project_home/WDK')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/GusAppFramework/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/GusAppFramework/trunk') {
         directory('project_home/GUS')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/CBIL/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/CBIL/trunk') {
         directory('project_home/CBIL')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/ReFlow/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/ReFlow/trunk') {
         directory('project_home/ReFlow')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/GusSchema/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/GusSchema/trunk') {
         directory('project_home/GusSchema')
       }
-      location('https://www.cbil.upenn.edu/svn/gus/FgpUtil/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/gus/FgpUtil/trunk') {
         directory('project_home/FgpUtil')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonData/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/ApiCommonData/trunk') {
         directory('project_home/ApiCommonData')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EbrcWebsiteCommon/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/EbrcWebsiteCommon/trunk') {
         directory('project_home/EbrcWebsiteCommon')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/DoTS/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/DoTS/trunk') {
         directory('project_home/DoTS')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonWebService/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/ApiCommonWebService/trunk') {
         directory('project_home/ApiCommonWebService')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonWebsite/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/ApiCommonWebsite/trunk') {
         directory('project_home/ApiCommonWebsite')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EbrcWebSvcCommon/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/EbrcWebSvcCommon/trunk') {
         directory('project_home/EbrcWebSvcCommon')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/ApiCommonModel/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/ApiCommonModel/trunk') {
         directory('project_home/ApiCommonModel')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EbrcModelCommon/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/EbrcModelCommon/trunk') {
         directory('project_home/EbrcModelCommon')
       }
-      location('https://www.cbil.upenn.edu/svn/apidb/EuPathDBIrods/trunk') {
+      location('https://cbilsvn.pmacs.upenn.edu/svn/apidb/EuPathDBIrods/trunk') {
         directory('project_home/EuPathDBIrods')
       }
     }
