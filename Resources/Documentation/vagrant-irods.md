@@ -118,6 +118,50 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * FInally, the job will create the jenkinsCommunicationConfig.txt. It is located in IRODS at <code>/ebrc/workspaces</code> and will be used by one of the python scripts mentioned above to communicate with the IRODS Listener (irods-listener) job on Jenkins.
   * It would be prudent to be sure that file was created and properly placed.
   
+### Deploy the IRODS Rest API
+  * This service is needed to allow the transfer of user datasets from galaxy.
+  * The war file for version 4.1.10 (<code>https://github.com/DICE-UNC/irods-rest/releases</code>) is in the EuPathDBIrods project.
+  * As vagrant, go to the tomcat webapps directory (<code>cd /usr/local/apache-tomcat-6.0.43/webapps</code>).
+  * Copy the irods rest api war file there (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/irods-rest.war .</code>).
+  * Create a directory that will house the properties file (<code>sudo mkdir /etc/irods-ext</code>).
+  * Drop the irods rest properties file into this new directory (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/irods-rest.properties /etc/irods-ext/.</code>).
+  * Start tomcat (<code>sudo /usr/local/apache-tomcat/bin/startup.sh</code>).  This is running on 8080.
+  * Verify that the rest service is working (<code>curl -u wrkspuser:passWORD localhost:8080/irods-rest/rest/server</code>).
+  * Modify the Vagrantfile to allow port 8080 through the firewall:
+  <code>
+	  config.vm.provider "virtualbox" do |v|
+	    v.memory = 2048
+	  end
+  
+	  tomcat_port = 8080
+	  config.vm.network "forwarded_port", guest: tomcat_port, host: tomcat_port
+
+	  config.vm.network :private_network, type: :dhcp
+	  config.vm.synced_folder ".", "/vagrant", type: "nfs"
+  </code>
+  
+  <code>
+	    config.vm.provision :puppet do |puppet|
+	      puppet.environment = 'savm'
+	      puppet.environment_path = 'puppet/environments'
+	      puppet.manifests_path = 'puppet/environments/savm/manifests'
+	      puppet.manifest_file = 'site.pp'
+	      puppet.hiera_config_path = 'puppet/hiera.yaml'
+	      #puppet.options = ['--debug --trace --verbose']
+	    end
+  
+	    config.vm.provision 'shell',
+	       inline: "firewall-cmd --permanent --add-rich-rule=\"rule port port=#{tomcat_port} protocol='tcp' accept\""
+  
+	    if ( Vagrant.has_plugin?('landrush') and config.landrush.enabled)
+	      config.vm.provision :shell, inline: '/sbin/iptables-restore < /root/landrush.iptables'
+	    end
+
+	  end
+  </code>
+  * Exit the VM and reload (<code>vagrant reload</code>).
+  * Once the VM is again running, restart tomcat and insure that the irods rest service is visible externally (check <code>http://wij.vm:8080/irods-rest/rest/server</code> using the same credentials as earlier).
+  
 ### End to End Testing
   * A sample dataset (<code>dataset_u12401223_t1231238088881.tgz</code>) is available in the EuPathDBIrods project for testing.  Copy it over to vagrant home (<code>cd ~</code> and <code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/dataset_u12401223_t1231238088881.tgz .</code>).
   * Be careful - it is easy to inadvertantly run Unix commands rather than iCommands.
