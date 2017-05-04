@@ -125,22 +125,28 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
   * Copy the irods rest api war file there (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/irods-rest.war .</code>).
   * Create a directory that will house the properties file (<code>sudo mkdir /etc/irods-ext</code>).
   * Drop the irods rest properties file into this new directory (<code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/irods-rest.properties /etc/irods-ext/.</code>).
-  * Start tomcat (<code>sudo /usr/local/apache-tomcat/bin/startup.sh</code>).  This is running on 8080.
-  * Verify that the rest service is working (<code>curl -u wrkspuser:passWORD localhost:8080/irods-rest/rest/server</code>).
-  * Modify the Vagrantfile to allow port 8080 through the firewall:
+  * In the tomcat server.xml file change the port from 8080 to 8180.
   <code>
+	  sudo vi /usr/local/apache-tomcat/conf/server.xml
+	  
+	  <Connector port="8180" protocol="HTTP/1.1" 
+	                connectionTimeout="20000" 
+	                redirectPort="8443" />
+  </code>
+  * Start tomcat (<code>sudo /usr/local/apache-tomcat/bin/startup.sh</code>).  This is running on 8080.
+  * Verify that the rest service is working (<code>curl -u wrkspuser:passWORD localhost:8180/irods-rest/rest/server</code>).
+  * Modify the Vagrantfile to allow port 8180 through the firewall:<code>
 	  config.vm.provider "virtualbox" do |v|
 	    v.memory = 2048
 	  end
   
-	  tomcat_port = 8080
-	  config.vm.network "forwarded_port", guest: tomcat_port, host: tomcat_port
+	  tomcat\_port = 8180
+	  config.vm.network "forwarded\_port", guest: tomcat\_port, host: tomcat\_port
 
-	  config.vm.network :private_network, type: :dhcp
+	  config.vm.network :private\_network, type: :dhcp
 	  config.vm.synced_folder ".", "/vagrant", type: "nfs"
-  </code>
-  
-  <code>
+ 
+ 
 	    config.vm.provision :puppet do |puppet|
 	      puppet.environment = 'savm'
 	      puppet.environment_path = 'puppet/environments'
@@ -151,7 +157,7 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 	    end
   
 	    config.vm.provision 'shell',
-	       inline: "firewall-cmd --permanent --add-rich-rule=\"rule port port=#{tomcat_port} protocol='tcp' accept\""
+	       inline: "firewall-cmd --permanent --add-rich-rule=\"rule port port=#{tomcat\_port} protocol='tcp' accept\""
   
 	    if ( Vagrant.has_plugin?('landrush') and config.landrush.enabled)
 	      config.vm.provision :shell, inline: '/sbin/iptables-restore < /root/landrush.iptables'
@@ -160,7 +166,8 @@ These steps are based upon the contents of the EuPathDBIrods project which is fo
 	  end
   </code>
   * Exit the VM and reload (<code>vagrant reload</code>).
-  * Once the VM is again running, restart tomcat and insure that the irods rest service is visible externally (check <code>http://wij.vm:8080/irods-rest/rest/server</code> using the same credentials as earlier).
+  * My experience is that this reload step is insufficient by itself.  I have to run the firewall-cmd inside vagrant and then reload (<code>firewall-cmd --permanent --add-rich-rule="rule port port=8180 protocol='tcp' accept"</code>).  Then do another <code>vagrant reload</code>.
+  * Once the VM is again running, restart tomcat and insure that the irods rest service is visible externally (check <code>http://wij.vm:8180/irods-rest/rest/server</code> using the same credentials as earlier).
   
 ### End to End Testing
   * A sample dataset (<code>dataset_u12401223_t1231238088881.tgz</code>) is available in the EuPathDBIrods project for testing.  Copy it over to vagrant home (<code>cd ~</code> and <code>sudo cp /vagrant/scratch/project_home/EuPathDBIrods/Resources/dataset_u12401223_t1231238088881.tgz .</code>).
