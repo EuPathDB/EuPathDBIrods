@@ -51,7 +51,7 @@ acPreprocForRmColl {
         writeLine("serverLog", "Flush mode in effect - exit PEP");
     }
     else {
-        if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*") {
+        if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*" && !($collName like regex "/ebrc/workspaces/users/.*/datasets/.*/.*")) {
 	        acDatasetPreprocForRmColl();
 	    }
 	}
