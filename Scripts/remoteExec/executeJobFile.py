@@ -1,47 +1,59 @@
-#!/usr/bin/env python
+#!/bin/env python
 
-import requests
+import jenkins
+import yaml
 import sys
-from urlparse import urlparse
-
-"""
-Utility method to take the content of a Jenkins Communication Configuration file sent via IRODS, and
-turn it into an http request to a Jenkins listener job.  Initial request is a get method to retrieve a
-crumb to be put in all subsequent request headers to avoid CSRF.  The post request follows that.  An
-example parameter string for this python script mimicing what IRODS transmits is shown below for
-diagnostic purposes (see sure to remove hashes and any spurious characters the editor may introduce).
-Done with the generous assistance of Mark Heiges.
-
-Example parameter list
-"wrkspuser,be4797e4b88200492d29cf0aeb32f5de,http://wij.vm:9171/job/IrodsListener/build,eupathdbirods,otherstuff"
-
-This program resides in /var/lib/irods/iRODS/server/bin/cmd and is set as owned by irods.  Be sure that perms are
-755 (even if symlinked).
-"""
+from optparse import OptionParser
 
 def main():
-    args = sys.argv[1:]
-    try:
-        if len(args) != 1:
-            raise IOError("Expected a single string argument containing job file path, username, and password separated with commas.")
-        props = "".join(args).split(",")
-        username = props[0]
-        password = props[1]
-        jobUrl = props[2]
-        token = props[3]
-        datasetStoreId = props[4]
-        host = urlparse(jobUrl).scheme + "://" + urlparse(jobUrl).hostname + ":" + str(urlparse(jobUrl).port)
-        crumbUrl = host + "/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        response = requests.get(crumbUrl, auth=(username, password))
-        response.raise_for_status()
-        crumbValue = response.text.split(":")[1]
-        headers = {"Jenkins-Crumb":crumbValue}
-        params = {"DATASET_STORE_ID": datasetStoreId, "token": token}
-        response = requests.post(jobUrl, auth=(username, password), headers=headers, data=params)
-        response.raise_for_status()
-    except Exception as e:
-        sys.stdout.write(str(e))
-        sys.exit(1)
-  
+
+    usage = """usage: %prog [options] dataset_id
+
+This script takes a dataset_id and triggers a jenkins job with that id as a
+parameter.  The jenkins configuation for connection and authentication are found
+in /var/lib/irods/jenkins.conf
+"""
+
+    parser = OptionParser(usage=usage)
+    parser.add_option("-v", "--verbose", action="store_true", default=False)
+
+    (options, args) = parser.parse_args()
+
+    if options.verbose:
+        print options, args
+
+    if len(args) != 1:
+        parser.error("incorrect number of arguments")
+
+    dataset_id = args[0]
+    conf = get_conf()
+
+    if options.verbose:
+        print conf
+
+    # gather params to send in to job
+    params = {"DATASET_STORE_ID": dataset_id, "token": conf['job_token']}
+
+    # setup jenkins server connection
+    server = jenkins.Jenkins(conf['url'], username=conf['user'], password=conf['api_token'])
+
+    # build job
+    server.build_job(conf['job'], params)
+
+
+def get_conf():
+    """ Returns configuration values taken from conf file, or later on, some
+    central store"""
+
+    with open("/var/lib/irods/jenkins.conf", 'r') as stream:
+        try:
+            conf = yaml.load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+            sys.exit(-1)
+    return conf
+
+
 if __name__ == "__main__":
-    sys.exit(main())  
+        sys.exit(main())
+
