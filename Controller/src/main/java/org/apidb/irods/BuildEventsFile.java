@@ -63,7 +63,7 @@ public class BuildEventsFile {
     UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
     JSONArray eventJsonArray = new JSONArray();
     try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {
-      if(!dsStore.getId().equals(datasetStoreId)) {
+      if(dsStore.getId() == null || !dsStore.getId().equals(datasetStoreId)) {
         throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
       }
     
@@ -94,7 +94,7 @@ public class BuildEventsFile {
     handler.setProjectId(projectId);
     Path tmpDir =  Paths.get(handler.getWdkTempDirName());
     handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
-                            modelConfig.getUserDatasetStoreConfig().getTypeHandlers(), tmpDir);
+                            dsConfig.getTypeHandlers(), tmpDir);
   }
 
 }
