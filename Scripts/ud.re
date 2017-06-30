@@ -11,6 +11,7 @@ acPostProcForPut {
 	writeLine("serverLog", "PEP acPostProcForPut - $objPath");
 	*literals = getLiterals();
 	msiSplitPath($objPath, *fileDir, *fileName);
+	
 	# if a properly composed txt file is put into the landing zone, find the corresponding tarball and upack it.
 	writeLine("serverLog","File dir is *fileDir - does it match *literals.flagsPath");
 	if(*fileDir == *literals.flagsPath && *fileName like regex "dataset_u.*_t.*[.]txt") then {
@@ -358,11 +359,9 @@ acGenerateEventJson(*userDatasetPath, *event, *datasetId, *action, *recipient, *
 # Jenkins.
 acTriggerEvent() {
     *literals = getLiterals();
-	*jobFile = *literals.jobFilePath;
-	acGetDataObjectSize(*jobFile, *jobFileSize);
-	msiDataObjOpen("objPath=*jobFile++++replNum=0++++openFlags=O_RDONLY", *jobFileDescriptor);
-	msiDataObjRead(*jobFileDescriptor, *jobFileSize, *jobData);
-    *argv = str(*jobData);
+	writeLine("serverLog","get metadata for *literals.irodsId and *literals.homePath");
+	*irodsIdValue = getAttributeFromCollectionMetadata(*literals.irodsId, *literals.homePath);
+    *argv = str(*irodsIdValue);
 	writeLine("serverLog", "Passing *argv");
 
 	# Done this way to identify any issues with the python script
@@ -451,9 +450,20 @@ checkForCollectionExistence(*collection) = {
     *count > 0;
 }
 
+getAttributeFromCollectionMetadata(*attribute, *collection) = {
+    *results = SELECT META_COLL_ATTR_VALUE WHERE COLL_NAME = '*collection' AND META_COLL_ATTR_NAME = '*attribute';
+	*value = '';
+    foreach(*result in *results) {
+		*value = *result.META_COLL_ATTR_VALUE;
+	}
+	writeLine("serverLog","Attr value: " ++ *value);
+	*value;
+}
+
 # A collection of literals for paths through the workspace done in an effort
 # to keep these literals in one place.
 getLiterals() = {
+  *literals.irodsId = "irods_id";
   *literals.homePath = "/ebrc/workspaces";
   *literals.stagingAreaPath = *literals.homePath ++ "/staging";
   *literals.flagsPath = *literals.homePath ++ "/flags";
@@ -461,7 +471,6 @@ getLiterals() = {
   *literals.eventsPath = *literals.homePath ++ "/events";
   *literals.defaultQuotaPath = *literals.usersPath ++ "/default_quota";
   *literals.landingZonePath = *literals.homePath ++ "/lz";
-  *literals.jobFilePath = *literals.homePath ++ "/jenkinsCommunicationConfig.txt";
   #writeLine("serverLog","Literals: *literals");
   *literals;
 }
