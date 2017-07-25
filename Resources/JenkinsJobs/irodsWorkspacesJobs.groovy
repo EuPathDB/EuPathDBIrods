@@ -113,8 +113,6 @@ job('irods-builder') {
   label(node)
   customWorkspace(workspace)
   parameters {
-	stringParam('JENKINS_USERNAME', 'wrkspuser', 'This is the Jenkins user that is calling the IRODS Listener job')
-	stringParam('JENKINS_USER_PASSWORD', '', 'The password/token belonging to the Jenkins user calling the IRODS Listener job')
     stringParam('MODE', 'Dev', 'Indicates whether the mode of operation is development (DEV) or other.  If not development, a complete cleaning is done.')
   }
   scm {
