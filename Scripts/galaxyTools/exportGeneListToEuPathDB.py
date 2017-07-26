@@ -26,7 +26,9 @@ def main():
     dataset_file_path = args[3]
     #user_id = args[4]
     # My WDK user id for now
-    user_id = "108976930"
+    galaxy_user = "crisl.108976930@eupathdb.org".split("@")[0]
+    user_id = galaxy_user[galaxy_user.rfind(".") + 1:]
+    #user_id = "108976930"
     tool_directory = args[5]
 
     reference_genome = "This is a ref genome for now"
