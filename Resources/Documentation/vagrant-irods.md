@@ -94,7 +94,7 @@ sudo su - joeuser
   ```bash
 cp /vagrant/scratch/PlasmoDBMetaConfig.yaml /var/tmp/jenkins-irods/.
 cp /vagrant/scratch/gus.config /var/tmp/jenkins-irods/.
-cp /vargrant/scratch/projectList.txt /var/tmp/jenkins-irods/.
+cp /vagrant/scratch/projectList.txt /var/tmp/jenkins-irods/.
 ```
 * This is a stopgap measure to avoid manually editing the Jenkins workspace.  Better solutions are being sought.
 
