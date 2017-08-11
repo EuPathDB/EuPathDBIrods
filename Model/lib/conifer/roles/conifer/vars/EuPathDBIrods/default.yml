@@ -1,0 +1,10 @@
+modelconfig_modelName: apiCommonModel
+
+gusconfig_dbVendor: '{{ modelconfig_accountDb_platform }}'
+
+gusconfig_dbiDsn: '{{ modelconfig_appDb_connectionUrl|jdbc2Dbi }}'
+gusconfig_jdbcDsn: '{{ modelconfig_appDb_connectionUrl }}'
+gusconfig_databaseLogin: '{{ modelconfig_appDb_login }}'
+gusconfig_databasePassword: '{{ modelconfig_appDb_password }}'
+gusconfig_perl: /usr/bin/perl
+

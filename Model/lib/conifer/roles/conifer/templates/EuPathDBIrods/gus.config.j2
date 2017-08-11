@@ -1,0 +1,16 @@
+# RDBMS Connection Strings
+## dbVendor is the RDBMS Vendor.  Postgres or Oracle
+## dbiDsn is for Perl ( dbi:Oracle:NAME_OF_DATABASE )
+## jdbcDsn is for Java ( eg jdbc:oracle:thin:@HOSTNAME:PORT:NAME_OF_DATABASE )
+## NAME_OF_DATABASE can be the full service name or a valid alias
+dbVendor={{ gusconfig_dbVendor }}
+dbiDsn={{ gusconfig_dbiDsn }}
+jdbcDsn={{ gusconfig_jdbcDsn }}
+
+# Your login and Password to the RDBMS
+databaseLogin={{ gusconfig_databaseLogin }}
+databasePassword={{ gusconfig_databasePassword }}
+
+# Path to Perl Executable
+perl={{ gusconfig_perl }}
+
