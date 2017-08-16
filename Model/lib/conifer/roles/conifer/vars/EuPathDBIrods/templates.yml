@@ -9,9 +9,12 @@ default: &default
   model.prop:
     src: 'WDK/model.prop.j2'
     dest: '{{ gus_home }}/config/{{ project }}/model.prop'
-  gus.config:
+  project.gus.config:
     src: 'EuPathDBIrods/gus.config.j2'
     dest: '{{ gus_home }}/config/{{ project }}/gus.config'
+  gus.config:
+    src: 'EuPathDBIrods/gus.config.j2'
+    dest: '{{ gus_home }}/config/gus.config'
 
 
 AmoebaDB: *default

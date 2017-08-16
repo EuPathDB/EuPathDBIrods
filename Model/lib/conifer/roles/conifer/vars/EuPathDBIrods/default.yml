@@ -14,8 +14,9 @@ gusconfig_dbiDsn: '{{ modelconfig_appDb_connectionUrl|jdbc2Dbi }}'
 gusconfig_jdbcDsn: '{{ modelconfig_appDb_connectionUrl }}'
 gusconfig_databaseLogin: '{{ modelconfig_appDb_login }}'
 gusconfig_databasePassword: '{{ modelconfig_appDb_password }}'
+gusconfig_userName: '{{ modelconfig_appDb_login }}'
 gusconfig_perl: /usr/bin/perl
-
+gusconfig_md5sum: /usr/bin/md5sum
 
 modelconfig_userDatasetStoreConfig: >
  <userDatasetStore implementation="org.gusdb.wdk.model.user.dataset.irods.IrodsUserDatasetStore">
