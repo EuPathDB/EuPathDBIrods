@@ -49,6 +49,7 @@
   	                                       ApiCommonData-Installation,
   	                                       EbrcWebsiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
+                                           EuPathDBIrods/Model-Installation,
                                            EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
       <property name="project" value="EuPathDBIrods"/>
@@ -72,6 +73,12 @@
     </ant>
   </target>  
 
+  <target name="EuPathDBIrods/Model-Installation">
+    <ant target="defaultComponentInstall">
+      <property name="project" value="EuPathDBIrods"/>
+      <property name="component" value="Model"/>
+    </ant>
+  </target>
 
  
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
