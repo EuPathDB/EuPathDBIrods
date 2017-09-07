@@ -47,62 +47,64 @@ def listenerStep = {
 
 def builderPreScmStep = {
     return """
-	# Setup env variables for this build step
-	export BASE_GUS="\$WORKSPACE"
-
-  # Unless this build is run in development mode, completely remove
-  # everything in this workspace.  Then add back the need templates
-  if [[ "\$MODE" != "Dev" ]]
-    then
-      rm -rf "\$BASE_GUS/*"
-      cp /usr/local/home/joeuser/irods/PlasmoDBMetaConfig.yaml "\$BASE_GUS/."
-      cp /usr/local/home/joeuser/irods/gus.config "\$BASE_GUS/."
-      cp /usr/local/home/joeuser/irods/projectList.txt "\$BASE_GUS/."
-  fi
+    # Setup env variables for this build step
+    export BASE_GUS="\$WORKSPACE"
+    
+    # Unless this build is run in development mode, completely remove
+    # everything in this workspace.  Then add back projectList.txt
+     if [[ "\$MODE" != "Dev" ]]
+      then
+        rm -rf \$BASE_GUS/*
+        cp /usr/local/home/joeuser/irods/projectList.txt "\$BASE_GUS/."
+        cp /usr/local/home/joeuser/irods/site_vars.yml "\$BASE_GUS/."
+    fi
     """.stripIndent()
 }
 
 def builderPostScmStep = {
   return """
-  # Setup env variables for this build step
-  export BASE_GUS="\$WORKSPACE"
-  export GUS_HOME="\$BASE_GUS/gus_home"
-  export PROJECT_HOME="\$BASE_GUS/project_home"
-  export PATH="\$GUS_HOME/bin:\$PROJECT_HOME/install/bin:\$PATH"
-  export PERL5LIB="\$GUS_HOME/lib/perl"
-
-  mkdir -p gus_home
-
-  mkdir -p "\$GUS_HOME/lib/java/db_driver";
-
-  cp "\$ORACLE_HOME/jdbc/lib/ojdbc6.jar" "\$GUS_HOME/lib/java/db_driver/"
-
-  # ApiCommonData build, upon which EuPathDBIrods depends, requires this file.
-  mkdir -p "\$GUS_HOME/config"
-  cp "\$BASE_GUS/gus.config" "\$GUS_HOME/config/gus.config"
-
-  # Contains all the project dependencies
-  bld EuPathDBIrods
-
-  # There will be multiple calls here - a different yaml for each project
-  # Directory named after project made user \$GUS_HOME/config when eupathSiteConfigure is run.
-  eupathCloneMetaFile "\$BASE_GUS/PlasmoDBMetaConfig.yaml" -inc projectList.txt
-
-  # By convention, all meta config yaml files have this file name suffix.  The prefix is the
-  # project id.  Run eupathSiteConfigure for each project in the projectList.txt file.
-  FILE_SUFFIX="MetaConfig.yaml"
-  PROJECTS="\$(cat projectList.txt | cut -f 2)"
-  PROJECT_ARRAY=(`echo "\$PROJECTS"`);
-  for PROJECT in "\${PROJECT_ARRAY[@]}"
-	do
-	  eupathSiteConfigure -model "\$PROJECT" -filename "\$PROJECT\$FILE_SUFFIX"
-	done
-
-
-  # Needed for ApiCommonData build upon which EuPathDBIrods depends
-  # Note that these steps follow the eupathSiteConfigure cmd because they require the dir
-  # that eupathSiteConfigure creates.
-  eupathCloneGusConfigFile gus.config -inc projectList.txt
+    # Setup env variables for this build step
+    export BASE_GUS="\$WORKSPACE"
+    export GUS_HOME="\$BASE_GUS/gus_home"
+    export PROJECT_HOME="\$BASE_GUS/project_home"
+    export PATH="\$GUS_HOME/bin:\$PROJECT_HOME/install/bin:\$PATH"
+    export PERL5LIB="\$GUS_HOME/lib/perl"
+    export SITE_VARS="site_vars.yml"
+    
+    mkdir -p "\$GUS_HOME/lib/java/db_driver";
+    
+    cp "\$ORACLE_HOME/jdbc/lib/ojdbc6.jar" "\$GUS_HOME/lib/java/db_driver/"
+    
+    # do initial conifer install
+    \$BASE_GUS/project_home/FgpUtil/Util/bin/conifer install \\
+    --project-home \$BASE_GUS/project_home \\
+    --gus-home \$BASE_GUS/gus_home \\
+    --project PlasmoDB \\
+    --cohort EuPathDBIrods \\
+    --site-vars \$SITE_VARS \\
+    --webapp-ctx none
+    
+    
+    # configure each project listed in projectList.txt
+    
+    PROJECTS="\$(grep -v ^project projectList.txt | cut -f 1)"
+    echo projects are: \$PROJECTS
+    
+    for PROJECT in \$PROJECTS
+    do
+      echo project is: \$PROJECT
+      \$BASE_GUS/project_home/FgpUtil/Util/bin/conifer configure \\
+      --project-home \$PROJECT_HOME \\
+      --gus-home \$GUS_HOME \\
+      --project \$PROJECT \\
+      --cohort EuPathDBIrods \\
+      --site-vars \$SITE_VARS \\
+      --webapp-ctx none
+      
+    done
+    
+    # Contains all the project dependencies
+    bld EuPathDBIrods
 
   """.stripIndent()
 }
