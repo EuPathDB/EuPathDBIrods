@@ -54,7 +54,7 @@ class Export:
         # directory and to export both the tarball and the flag that triggers IRODS to process the tarball. By
         # convention, the dataset tarball is of the form dataset_uNNNNNN_tNNNNNNN.tgz where the NNNNNN following the _u
         # is the WDK user id and _t is the msec timestamp
-        self._export_file_root = 'dataset_u' + self._user_id + '_t' + str(self._timestamp)
+        self._export_file_root = 'dataset_u' + str(self._user_id) + '_t' + str(self._timestamp)
 
         # Set up the configuration data
         (self._url, self._user, self._pwd, self._lz_coll, self._flag_coll) = self.collect_rest_data()
@@ -67,6 +67,10 @@ class Export:
          in that order
         """
         config_path = self._tool_directory + "/config.json"
+        
+        # The tool directory path seems glitchy on Globus Dev Galaxy instance after service restarts.
+        # Uncomment to check.
+        #print >> sys.stdout, "self._tool_directory is " + self._tool_directory
         with open(config_path, "r+") as config_file:
           config_json = json.load(config_file)
           return (config_json["url"], config_json["user"], config_json["password"], "lz", "flags")
@@ -201,10 +205,10 @@ class Export:
         try:
             response = requests.post(request, auth=auth, headers=headers, files=upload_file)
             response.raise_for_status()
-        except:
+        except Exception as e:
             print >> sys.stderr, "Error: The dataset export could not be completed at this time.  The EuPathDB" \
-                                 " workspace may be unavailable presently."
-            sys.exit(1)
+                                 " workspace may be unavailable presently. " + str(e)
+            sys.exit(2)
         return response
 
     def get_flag(self, collection, source_file):
@@ -236,6 +240,21 @@ class Export:
         except (requests.exceptions.ConnectionError, TransferException) as e:
             print >> sys.stderr, "Error: " + str(e)
             sys.exit(1)
+        
+    def connection_diagnostic(self):
+        """
+        Used to insure that the calling ip is the one expected (i.e., the one for which the
+        firewall is opened).  In Globus Dev Galaxy instance calling the tool outside of Galaxy
+        versus inside Galaxy resulted in different calling ip addresses.
+        """
+        request = "http://ifconfig.co"
+        headers = {"Accept": "application/json"}
+        try:
+            response = requests.get(request, headers=headers)
+            response.raise_for_status()
+            print >> sys.stdout, "Diagnostic Result: " + response.content
+        except Exception as e:
+            print >> sys.stderr, "Diagnostic Error: " + str(e)        
 
     def export(self):
         """
@@ -246,6 +265,8 @@ class Export:
         # Apply the validation first.  If it fails, exit with a data error.
         self.validate_datasets()
 
+        # We need to save the current working directory so we can get back to it when we are
+        # finished working in our temporary directory.
         orig_path = os.getcwd()
 
         # We need to create a temporary directory in which to assemble the tarball.
@@ -259,6 +280,9 @@ class Export:
             self.create_metadata_json_file(temp_path)
             self.create_dataset_json_file(temp_path)
             self.create_tarball()
+            
+            # Uncomment to check the calling ip address for this tool.
+            #self.connection_diagnostic()
 
             # Call the iRODS rest service to drop the tarball into the iRODS workspace landing zone
             self.process_request(self._lz_coll, self._export_file_root + ".tgz")
@@ -270,9 +294,10 @@ class Export:
             # triggers the iRODS PEP that unpacks the tarball and posts the event to Jenkins
             self.process_request(self._flag_coll, self._export_file_root + ".txt")
 
+            # Look for a success/fail indication from IRODS.
             self.get_flag(self._flag_coll, self._export_file_root)
 
-            # We exit the temporary directory prior to removing it.
+            # We exit the temporary directory prior to removing it, back to the original working directory.
             os.chdir(orig_path)
 
     @contextlib.contextmanager
@@ -287,7 +312,9 @@ class Export:
         try:
             yield temp_path
         finally:
-            shutil.rmtree(temp_path)
+            # Added the boolean arg because cannot remove top level of temp dir structure in
+            # Globus Dev Galaxy instance and it will throw an Exception if the boolean, 'True', is not in place.
+            shutil.rmtree(temp_path,True)
 
 
 class ValidationException(Exception):
