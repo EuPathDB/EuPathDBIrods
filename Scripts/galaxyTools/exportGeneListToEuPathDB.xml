@@ -1,10 +1,10 @@
 <tool id="exportGeneListToEuPathDB" name="Gene List to EuPathDB" version="1.0.0">
   <description>Export a gene list to EuPathDB</description>
-  <stdio>
-    <exit_code range="1" level="fatal" description="EuPathDB Export Failure" />
-  </stdio>
-  <command>
-    python $__tool_directory__/exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"
+  <requirements>
+    <requirement type="package">pymodules</requirement>
+  </requirements>
+  <command interpreter="python" detect_errors="aggressive">
+    exportGeneListToEuPathDB.py $dataset_name $summary $description $input $user_id $__tool_directory__
   </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
@@ -53,28 +53,18 @@
      a problem since the accompanying information will be the same each time.
      -->
     <param name="input" type="data" format="txt" label="Gene list to export:" >
+      <!--
+      This does not work with the older version of Galaxy that Globus uses.
       <validator type="empty_dataset" />
+      -->
     </param>
     <param name="user_id" type="hidden" value="$__user_id__" />
   </inputs>
   <outputs>
       <data format="txt" name="output" label="exportToEuPathDBInfo.txt" />
   </outputs>
-  <tests>
-    <!-- Haven't been able to get this to work using planemo t -->
-    <test>
-      <param name="datasetName" value="Sample Dataset"/>
-      <param name="summary" value="A sample dataset summary"/>
-      <param name="description" value="A sample dataset description" />
-      <param name="project" value="plasmoDB" />
-      <param name="input" value="genelist.txt" />
-      <output name="output" file="output.txt" />
-      <!-- user id for Cris -->
-      <param name="user_id" value="108976930" />
-    </test>
-  </tests>
 
-    <help>
+  <help>
 
 **What it does**
 
@@ -101,10 +91,10 @@ We recommend that the user only supply one dataset file at a time. The tool can 
 but the datasets could be very difficult to distinguish in EuPathDB as all the other parameters above
 will apply to every dataset.
 
-</help>
-<citations>
-  <citation type="doi">
-    10.1093/nar/gkw1105
-  </citation>
-</citations>
+  </help>
+  <citations>
+    <citation type="doi">
+      10.1093/nar/gkw1105
+    </citation>
+  </citations>
 </tool>
