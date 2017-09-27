@@ -3,8 +3,8 @@
   <requirements>
     <requirement type="package">pymodules</requirement>
   </requirements>
-  <command detect_errors="aggressive">
-    python exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"
+  <command interpreter="python" detect_errors="aggressive">
+    exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"
   </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
