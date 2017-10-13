@@ -4,7 +4,7 @@
     <requirement type="package">pymodules</requirement>
   </requirements>
   <command interpreter="python" detect_errors="aggressive">
-    exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$user_id" "$__tool_directory__"
+    exportGeneListToEuPathDB.py "$dataset_name" "$summary" "$description" "$input" "$__user_email__" "$__tool_directory__"
   </command>
   <inputs>
     <param name="dataset_name" type="text" size="100" value=""
@@ -58,7 +58,6 @@
       <validator type="empty_dataset" />
       -->
     </param>
-    <param name="user_id" type="hidden" value="$__user_id__" />
   </inputs>
   <outputs>
       <data format="txt" name="output" label="exportToEuPathDBInfo.txt" />
