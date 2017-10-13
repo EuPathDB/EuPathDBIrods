@@ -4,7 +4,7 @@ import eupath_genelist_exporter
 import eupath_exporter
 import optparse
 import sys
-import os
+import re
 
 
 def main():
@@ -13,18 +13,23 @@ def main():
 
       Sample for testing outside of Galaxy:
       python exportGeneListToEuPathDB.py
-             "a name" "a summary" "a description" "test-data/genelist.txt" "108976930" <this directory>
+             "a name" "a summary" "a description" "test-data/genelist.txt" "<user.wdk_id@eupath.org>" <this directory>
     """
 
     parser = optparse.OptionParser()
     (options, args) = parser.parse_args()
 
     # Salt away all parameters.
+    if len(args) < 5:
+        raise eupath_exporter.ValidationException("The tool was passed an insufficient numbers of arguments.")
     dataset_name = args[0]
     summary = args[1]
     description = args[2]
     dataset_file_path = args[3]
-    galaxy_user = args[4].split("@")[0]
+    user_email = args[4].strip()
+    if not re.match(r'.+\.\d+@eupathdb.org$', user_email, flags=0):
+        raise eupath_exporter.ValidationException("The user email " + str(user_email) + " is not valid for the use of this tool.")
+    galaxy_user = user_email.split("@")[0]
     user_id = galaxy_user[galaxy_user.rfind(".") + 1:]
     tool_directory = args[5]
 
