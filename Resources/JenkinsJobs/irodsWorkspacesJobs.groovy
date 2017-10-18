@@ -107,7 +107,7 @@ def builderPostScmStep = {
     bld EuPathDBIrods
 
     # remove unneeded ojdbc5.jar pulled in by dependencies that can conflict.
-    rm -f $GUS_HOME/lib/java/db_driver/ojdbc5.jar
+    rm -f \$GUS_HOME/lib/java/db_driver/ojdbc5.jar
 
   """.stripIndent()
 }
