@@ -1,24 +1,20 @@
 package org.apidb.irods;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.gusdb.wdk.model.Utilities;
+import org.gusdb.fgputil.db.slowquery.QueryLogConfig;
+import org.gusdb.fgputil.db.slowquery.QueryLogger;
 import org.gusdb.wdk.model.WdkModelException;
-import org.gusdb.wdk.model.config.ModelConfig;
-import org.gusdb.wdk.model.config.ModelConfigParser;
-import org.gusdb.wdk.model.config.ModelConfigUserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetSession;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStoreAdaptor;
 import org.gusdb.wdk.model.user.dataset.event.UserDatasetEventArrayHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.xml.sax.SAXException;
 
 /**
  * This is a small Java application that should be called by Jenkins whenever an IRODS event of note takes
@@ -46,23 +42,27 @@ public class BuildEventsFile {
  
     logger.info("Parameters - Project: " + projectId + ", Dataset Store: " + datasetStoreId);
     
-    // A model configuration file must exist for every project this program may possibly support.
-    String gusHome = System.getProperty(Utilities.SYSTEM_PROPERTY_GUS_HOME);
-    ModelConfigParser parser = new ModelConfigParser(gusHome);
-    ModelConfig modelConfig = null;
+    JSONArray eventJsonArray = new JSONArray();
+    
+    // Create a dataset event handler to process the resulting events JSON array.  The
+    // dataset event handler constructor uses the provided projectId to initialize and
+    // populate the user dataset store and provide the temporary directory url.
+    UserDatasetStore dsStore = null;
+    UserDatasetEventArrayHandler handler = null;
     try {
-      modelConfig = parser.parseConfig(projectId);
+      handler = new UserDatasetEventArrayHandler(projectId);
+      dsStore = handler.getUserDatasetStore();
     }
-    catch(WdkModelException | SAXException | IOException e) {
+    catch(WdkModelException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    
-    // Insures that the appropriate datastore is calling this method.
-    ModelConfigUserDatasetStore dsConfig = modelConfig.getUserDatasetStoreConfig();
-    UserDatasetStore dsStore = dsConfig.getUserDatasetStore();
-    JSONArray eventJsonArray = new JSONArray();
+     
+    // Open the user dataset session for processing the event list.
     try(UserDatasetSession dsSession = dsStore.getSession(dsStore.getUsersRootDir())) {
+    	
+      // Insure that the dataset store that triggered this event handling operation is the
+      // same as the one with which this code communicates.
       if(dsStore.getId() == null || !dsStore.getId().equals(datasetStoreId)) {
         throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
       }
@@ -88,13 +88,10 @@ public class BuildEventsFile {
         }
       }
       logger.info("Events JSON array:" + eventJsonArray.toString());
-    }
-    // Create a dataset event handler to further process the resulting events JSON array.
-    UserDatasetEventArrayHandler handler = new UserDatasetEventArrayHandler();
-    handler.setProjectId(projectId);
-    Path tmpDir =  Paths.get(handler.getWdkTempDirName());
-    handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
-                            dsConfig.getTypeHandlers(), tmpDir);
-  }
 
+      // Process the events
+      handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
+    		handler.getModelConfig().getUserDatasetStoreConfig().getTypeHandlers());
+    }
+  }
 }
