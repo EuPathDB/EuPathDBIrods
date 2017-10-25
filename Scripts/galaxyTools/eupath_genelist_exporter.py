@@ -49,10 +49,12 @@ class GeneListExport(eupath_exporter.Export):
 
     def identify_projects(self):
         """
-        The appropriate project will be determined by DD
+        The appropriate project will be determined by DD.  Note that the string returned should
+        follow the convention for a Eupath project - first letter and DB suffix in uppercase
+        (e.g., PlasmoDB, ToxoDB).
         :return: list containing the single relevant EuPath project
         """
-        return ["plasmoDB"]
+        return ["PlasmoDB"]
 
     def identify_dataset_files(self):
         """
