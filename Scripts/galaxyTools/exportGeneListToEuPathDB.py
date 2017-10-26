@@ -32,8 +32,11 @@ def main():
     galaxy_user = user_email.split("@")[0]
     user_id = galaxy_user[galaxy_user.rfind(".") + 1:]
     tool_directory = args[5]
+    reference_genome = args[6]
+    datatype = args[7]
 
-    reference_genome = "This is a ref genome for now"
+    print >> sys.stdout, "Reference genome: " + reference_genome
+    print >> sys.stdout, "Datatype: " + datatype
 
     # Create and populate the meta.json file that must be included in the tarball
     exporter = eupath_genelist_exporter.GeneListExport(dataset_file_path,
