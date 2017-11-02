@@ -1,11 +1,12 @@
 package org.apidb.irods;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+
+import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.gusdb.fgputil.db.pool.DatabaseInstance;
+import org.gusdb.wdk.model.WdkModel;
 import org.gusdb.wdk.model.WdkModelException;
 import org.gusdb.wdk.model.user.dataset.UserDatasetSession;
 import org.gusdb.wdk.model.user.dataset.UserDatasetStore;
@@ -64,32 +65,34 @@ public class BuildEventsFile {
       if(dsStore.getId() == null || !dsStore.getId().equals(datasetStoreId)) {
         throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
       }
-    
-      // Collect all the event files from the events folder in the datastore.
+
+      // Collect a subset of the event files from the events folder in the datastore.
       UserDatasetStoreAdaptor dsAdaptor = dsSession.getUserDatasetStoreAdaptor();
-      List<Path> eventFiles = new ArrayList<>();
-      try {
-        eventFiles = dsAdaptor.getPathsInDir(Paths.get(EVENTS_DIR));
+      Long lastHandledEventId = null;
+      try (DatabaseInstance appDb = new DatabaseInstance(handler.getModelConfig().getAppDB(), WdkModel.DB_INSTANCE_APP, true)) {
+          DataSource appDbDataSource = appDb.getDataSource();
+          lastHandledEventId = handler.findLastHandledEvent(appDbDataSource, handler.getUserDatasetSchemaName());
       }
-      catch (WdkModelException e) {
-        e.printStackTrace();
-        throw new RuntimeException(e);
+      catch (Exception e) {
+        throw new WdkModelException(e);
       }
-    
-      // Read the contents of those json formatted event files into JSON objects and collect
+      
+      // Read the contents of recent json formatted event files into JSON objects and collect
       // those JSON objects into a JSON array.
-      for(Path eventFile : eventFiles) {
+      //TODO - eventJsonArray could produce big memory footprint if we handle large number of event files. 
+      for(Path eventFile : dsSession.getRecentEvents(EVENTS_DIR, lastHandledEventId)) {
         if(eventFile.getFileName().toString().endsWith(".json")) {
           String event = dsAdaptor.readFileContents(eventFile);
           JSONObject eventJson = new JSONObject(event);
           eventJsonArray.put(eventJson);
         }
       }
-      logger.info("Events JSON array:" + eventJsonArray.toString());
+      logger.info("Events JSON array:" + eventJsonArray.toString(2));
 
       // Process the events
       handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
     		handler.getModelConfig().getUserDatasetStoreConfig().getTypeHandlers());
     }
   }
+
 }
