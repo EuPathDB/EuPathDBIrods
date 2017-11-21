@@ -4,15 +4,15 @@
 
 #appdb_shortname: # jenkins provides this via command line
 appdb_login: ApidbUserDatasets
-appdb_password: password['appdb']
+appdb_password: "{{ password['appdb'] }}"
 
 acctdb_shortname: acctdbN
 acctdb_login: uga_fed
-acctdb_password: password['acctdb']
+acctdb_password: "{{ password['acctdb'] }}"
 
 userdb_shortname: apicommdevn
 userdb_login: uga_fed
-userdb_password: password['userdb']
+userdb_password: "{{ password['userdb'] }}"
 
 # passwords
 
@@ -22,7 +22,7 @@ password:
       )
     }}"
   acctdb: "{{ lookup('euparc',
-      'attr=password xpath=database/user[@login=\"{}\"]'.format(accountdb_login)
+      'attr=password xpath=database/user[@login=\"{}\"]'.format(acctdb_login)
       )
     }}"
   userdb: "{{ lookup('euparc',
@@ -42,7 +42,7 @@ modelconfig_accountDb_connectionUrl: 'jdbc:oracle:oci:@{{ acctdb_shortname }}'
 modelconfig_accountDb_login: '{{ acctdb_login }}'
 modelconfig_accountDb_password: '{{ acctdb_password }}'
 
-modelconfig_appDb_connectionUrl: 'jdbc:oracle:oci:@{{ appdb_shortname }}'
+#modelconfig_appDb_connectionUrl: 'jdbc:oracle:oci:@{{ appdb_shortname }}'
 modelconfig_appDb_login: '{{ appdb_login }}'
 modelconfig_appDb_password: '{{ appdb_password }}'
 
