@@ -56,7 +56,7 @@ modelconfig_userDb_connectionUrl: 'jdbc:oracle:oci:@{{ userdb_shortname }}'
 
 modelconfig_userDatasetStoreConfig_irods_host: wij.vm
 modelconfig_userDatasetStoreConfig_irods_login: wrkspuser
-modelconfig_userDatasetStoreConfig_irods_password: password['irods']
+modelconfig_userDatasetStoreConfig_irods_password: "{{ password['irods'] }}"
 modelconfig_userDatasetStoreConfig_irods_resource: ebrcResc
 modelconfig_userDatasetStoreConfig_irods_rootPath: /ebrc/workspaces/users
 modelconfig_userDatasetStoreConfig_irods_zone: ebrc
