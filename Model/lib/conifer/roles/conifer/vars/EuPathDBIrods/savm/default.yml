@@ -38,13 +38,13 @@ password:
  
 # db settings
 
-modelconfig_accountDb_connectionUrl: 'jdbc:oracle:oci:@{{ acctdb_shortname }}'
-modelconfig_accountDb_login: '{{ acctdb_login }}'
-modelconfig_accountDb_password: '{{ acctdb_password }}'
-
 #modelconfig_appDb_connectionUrl: 'jdbc:oracle:oci:@{{ appdb_shortname }}'
 modelconfig_appDb_login: '{{ appdb_login }}'
 modelconfig_appDb_password: '{{ appdb_password }}'
+
+modelconfig_accountDb_connectionUrl: 'jdbc:oracle:oci:@{{ acctdb_shortname }}'
+modelconfig_accountDb_login: '{{ acctdb_login }}'
+modelconfig_accountDb_password: '{{ acctdb_password }}'
 
 modelconfig_userDb_login: '{{ userdb_login }}'
 modelconfig_userDb_password: '{{ userdb_password }}'
