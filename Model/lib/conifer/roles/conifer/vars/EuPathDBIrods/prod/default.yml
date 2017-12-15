@@ -1,0 +1,64 @@
+---
+
+# db vars
+
+#appdb_shortname: # jenkins provides this via command line
+appdb_login: ApidbUserDatasets
+appdb_password: "{{ password['appdb'] }}"
+
+acctdb_shortname: acctdbN
+acctdb_login: uga_fed
+acctdb_password: "{{ password['acctdb'] }}"
+
+userdb_shortname: apicommdevn
+userdb_login: uga_fed
+userdb_password: "{{ password['userdb'] }}"
+
+# passwords
+
+password:
+  appdb: "{{ lookup('euparc',
+      'attr=password xpath=database/user[@login=\"{}\"]'.format(appdb_login)
+      )
+    }}"
+  acctdb: "{{ lookup('euparc',
+      'attr=password xpath=database/user[@login=\"{}\"]'.format(acctdb_login)
+      )
+    }}"
+  userdb: "{{ lookup('euparc',
+      'attr=password xpath=database/user[@login=\"{}\"]'.format(userdb_login)
+      )
+    }}"
+  irods: "{{ lookup('euparc',
+      'attr=password xpath=workspaces/irods[@user=\"{}\"]'.format(modelconfig_userDatasetStoreConfig_irods_login)
+      )
+    }}"
+
+
+ 
+# db settings
+
+#modelconfig_appDb_connectionUrl: 'jdbc:oracle:oci:@{{ appdb_shortname }}'
+modelconfig_appDb_login: '{{ appdb_login }}'
+modelconfig_appDb_password: '{{ appdb_password }}'
+
+modelconfig_accountDb_connectionUrl: 'jdbc:oracle:oci:@{{ acctdb_shortname }}'
+modelconfig_accountDb_login: '{{ acctdb_login }}'
+modelconfig_accountDb_password: '{{ acctdb_password }}'
+
+modelconfig_userDb_login: '{{ userdb_login }}'
+modelconfig_userDb_password: '{{ userdb_password }}'
+modelconfig_userDb_connectionUrl: 'jdbc:oracle:oci:@{{ userdb_shortname }}'
+
+
+
+# irods config
+
+modelconfig_userDatasetStoreConfig_irods_host: sorva.gacrc.uga.edu
+modelconfig_userDatasetStoreConfig_irods_login: wrkspuser
+modelconfig_userDatasetStoreConfig_irods_password: "{{ password['irods'] }}"
+modelconfig_userDatasetStoreConfig_irods_resource: ebrcResc
+modelconfig_userDatasetStoreConfig_irods_rootPath: /ebrc/workspaces/users
+modelconfig_userDatasetStoreConfig_irods_zone: ebrc
+
+hostname: wij.vm
