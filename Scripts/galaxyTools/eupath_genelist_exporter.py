@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import eupath_exporter
+import sys
 
 
 class GeneListExport(eupath_exporter.Export):
@@ -14,6 +15,7 @@ class GeneListExport(eupath_exporter.Export):
     GENE_LIST_TYPE = "GeneList"
     GENE_LIST_VERSION = "1.0"
     GENE_LIST_FILE = "genelist.txt"
+    SUPPORTED_PROJECTS = ["PlasmoDB", "ToxoDB", "FungiDB"]
 
     # The validation script to be applied to the dataset files.  A failed validation should
     # return in a system exit status of other than 0.
@@ -49,12 +51,24 @@ class GeneListExport(eupath_exporter.Export):
 
     def identify_projects(self):
         """
-        The appropriate project will be determined by DD.  Note that the string returned should
-        follow the convention for a Eupath project - first letter and DB suffix in uppercase
-        (e.g., PlasmoDB, ToxoDB).
+        The appropriate project(s) will be determined by DD - only one for now
+        The project name starts the genome reference and is separated by a dash.
         :return: list containing the single relevant EuPath project
         """
-        return ["PlasmoDB"]
+
+        try:
+            print >> sys.stdout, "Index: " + str(self._reference_genome.index("-"))
+            project = self._reference_genome[0 : self._reference_genome.index("-")]
+        except ValueError:
+            print >> sys.stdout, "Ref Genome Data: " + self._reference_genome
+            raise eupath_exporter.ValidationException("The reference genome data " + self._reference_genome +
+                                                      " should be prepended with the EuPath project name"
+                                                      " followed by a dash.")
+        if project not in self.SUPPORTED_PROJECTS:
+            raise eupath_exporter.ValidationException("The user dataset feature for project " + project +
+                                                      " is not supported presently by EuPathDB.")
+        return [project]
+
 
     def identify_dataset_files(self):
         """
