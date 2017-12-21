@@ -51,13 +51,13 @@ class GeneListExport(eupath_exporter.Export):
 
     def identify_projects(self):
         """
-        The appropriate project(s) will be determined by DD - only one for now
-        The project name starts the genome reference and is separated by a dash.
-        :return: list containing the single relevant EuPath project
+        The appropriate project(s) will be determined by the reference genome selected - only one for now
+        The project name must start the genome reference, separated by a dash.  The project
+        name must also be listed in the SUPPORTED_PROJECTS array.  Either failure will be
+        regarded as a validation exception.
+        :return: list containing the single relevant EuPath project (only one for now)
         """
-
         try:
-            print >> sys.stdout, "Index: " + str(self._reference_genome.index("-"))
             project = self._reference_genome[0 : self._reference_genome.index("-")]
         except ValueError:
             print >> sys.stdout, "Ref Genome Data: " + self._reference_genome

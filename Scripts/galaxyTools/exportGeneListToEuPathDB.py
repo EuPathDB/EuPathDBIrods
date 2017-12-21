@@ -20,7 +20,7 @@ def main():
     (options, args) = parser.parse_args()
 
     # Salt away all parameters.
-    if len(args) < 5:
+    if len(args) < 8:
         raise eupath_exporter.ValidationException("The tool was passed an insufficient numbers of arguments.")
     dataset_name = args[0]
     summary = args[1]
@@ -35,9 +35,6 @@ def main():
     reference_genome = args[6]
     datatype = args[7]
 
-    print >> sys.stdout, "Reference genome: " + reference_genome
-    print >> sys.stdout, "Datatype: " + datatype
-
     # Create and populate the meta.json file that must be included in the tarball
     exporter = eupath_genelist_exporter.GeneListExport(dataset_file_path,
                                                        reference_genome,
@@ -49,7 +46,7 @@ def main():
     try:
         exporter.export()
     except eupath_exporter.ValidationException as ve:
-        print str(ve)
+        print >> sys.stderr, str(ve)
         sys.exit(1)
 
 
