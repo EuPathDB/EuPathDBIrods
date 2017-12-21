@@ -39,15 +39,20 @@ class GeneListExport(eupath_exporter.Export):
 
     def identify_dependencies(self):
         """
-        The gene list is expected not to have any dependencies.  So an empty list is sufficient here.
-        :return: []
+        The appropriate dependency(ies) will be determined by the reference genome selected - only one for now
+        The EuPathDB reference genomes will have a project id, a EuPath release number, and a genome description
+        all separated by a dash in the first instance and an underscore in the second instance.
+        :return: list containing the single dependency with the component parts parsed out (only one for now)
         """
-        return [{"resourceIdentifier": "pf3d7_genome_rsrc",
-                 "resourceVersion": "12/2/2015",
-                 "resourceDisplayName": "pfal genome"},
-                {"resourceIdentifier": "hsap_genome_rsrc",
-                 "resourceVersion": "2.6",
-                 "resourceDisplayName": "human genome"}]
+
+        # Syntax was validated when tool parameters were obtained
+        sans_project = self._reference_genome[self._reference_genome.index("-") + 1:]
+        components = sans_project.split("_")
+        return [{
+            "resourceIdentifier": self._reference_genome,
+            "resourceVersion": components[0],
+            "resourceDisplayName": components[1] + " Genome"
+        }]
 
     def identify_projects(self):
         """
@@ -57,13 +62,10 @@ class GeneListExport(eupath_exporter.Export):
         regarded as a validation exception.
         :return: list containing the single relevant EuPath project (only one for now)
         """
-        try:
-            project = self._reference_genome[0 : self._reference_genome.index("-")]
-        except ValueError:
-            print >> sys.stdout, "Ref Genome Data: " + self._reference_genome
-            raise eupath_exporter.ValidationException("The reference genome data " + self._reference_genome +
-                                                      " should be prepended with the EuPath project name"
-                                                      " followed by a dash.")
+
+        # Syntax was validated when tool parameters were obtained
+        project = self._reference_genome[0 : self._reference_genome.index("-")]
+
         if project not in self.SUPPORTED_PROJECTS:
             raise eupath_exporter.ValidationException("The user dataset feature for project " + project +
                                                       " is not supported presently by EuPathDB.")
