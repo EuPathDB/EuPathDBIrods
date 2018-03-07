@@ -29,7 +29,7 @@ modelconfig_userDatasetStoreConfig: >
    <property name="rootPath">{{ modelconfig_userDatasetStoreConfig_irods_rootPath }}</property>
    <typeHandler type="example" version="1.0" implementation="org.gusdb.wdk.model.user.dataset.ExampleTypeHandler"/>
    <typeHandler type="GeneList" version="1.0"  implementation="org.apidb.apicommon.model.userdataset.GeneListTypeHandler"/>
-   <typeHandler type="RnaSeq" version="1.0"  implementation="org.apidb.apicommon.model.userdataset.RnaSeqTypeHandler"/>
+   <typeHandler type="BigwigFiles" version="1.0"  implementation="org.apidb.apicommon.model.userdataset.BigwigFilesTypeHandler"/>
   </userDatasetStore>
 
 webapp_ctx: none
