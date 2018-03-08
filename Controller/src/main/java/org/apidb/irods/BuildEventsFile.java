@@ -90,8 +90,7 @@ public class BuildEventsFile {
       logger.info("Events JSON array:" + eventJsonArray.toString(2));
 
       // Process the events
-      handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray),
-    		handler.getModelConfig().getUserDatasetStoreConfig().getTypeHandlers());
+      handler.handleEventList(UserDatasetEventArrayHandler.parseEventsArray(eventJsonArray));
     }
   }
 
