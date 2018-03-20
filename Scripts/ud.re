@@ -311,7 +311,7 @@ acGetWorkspaceUsed(*userId, *collectionSize) {
 
 
 # Returns the integer default quota size in bytes.  The assumption is this file contains only a number (digits only)
-# in bytes, followed by a newline.
+# in megabytes, followed by a newline.
 acGetDefaultQuota(*defaultQuota) {
     *literals = getLiterals();
     *quotaFile = *literals.defaultQuotaPath;
@@ -320,7 +320,7 @@ acGetDefaultQuota(*defaultQuota) {
 	msiDataObjRead(*quotaFileDescriptor, *quotaFileSize, *quotaData);
 	msiStrchop(str(*quotaData), *defaultQuota);
 	msiDataObjClose(*quotaFileDescriptor, *quotaFileStatus);
-	*defaultQuota = int(*defaultQuota);
+	*defaultQuota = int(*defaultQuota) * 1024000;
 }
 
 # This action takes the dataset.json file found in the path given by the first argument and uses that as a
