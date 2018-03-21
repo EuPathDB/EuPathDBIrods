@@ -320,7 +320,7 @@ acGetDefaultQuota(*defaultQuota) {
 	msiDataObjRead(*quotaFileDescriptor, *quotaFileSize, *quotaData);
 	msiStrchop(str(*quotaData), *defaultQuota);
 	msiDataObjClose(*quotaFileDescriptor, *quotaFileStatus);
-	*defaultQuota = int(*defaultQuota) * 1024000;
+	*defaultQuota = int(*defaultQuota) * 1000000;
 }
 
 # This action takes the dataset.json file found in the path given by the first argument and uses that as a
