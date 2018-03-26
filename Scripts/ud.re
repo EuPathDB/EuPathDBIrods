@@ -142,21 +142,17 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    writeLine("serverLog", "Unpacking *tarballFile to $rescName, *userDatasetPath");
   	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
   	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging resource.");
-  	        *exists = checkForCollectionExistence(*stagingDatasetPath);
-                #TODO not sure what the above is meant to do: remove the staging area if it exists?
-  	        #if(*exists) {
-  	        #  writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
-  	        #  msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
-  	        #}
+  	        *exists = checkForCollectionExistence(*userDatasetPath);
+  	        if(*exists) {
+  	          writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
+  	          msiRmColl(*userDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+  	        }
   	    }
 
   	    # re-check site of user's new unpacked dataset to see whether the size, when added to the
   	    # current workspace, will put the user over quota.
   	    writeLine("serverLog", "Checking whether new unpacked user dataset will put user over quota");
             *datasetSize = getCollectionSize(*userDatasetPath, "stage");
-            # TODO determine how replication will impact quota - does quota
-            # include replication? if so, it will need to be halved elsewhere,
-            # otherwise, this will need to be doubled
   	    if(*datasetSize + *collectionSize > *defaultQuota) {
   	      acUserIssue(trimr(*fileName,"."), *message);
   	      msiGoodFailure;
@@ -333,7 +329,8 @@ acPostNewEvent(*event, *eventFileName) {
 acGetWorkspaceUsed(*userId, *collectionSize) {
     *literals = getLiterals();
     *collection = *literals.usersPath ++ "/*userId";
-    *collectionSize = getCollectionSize(*collection, "wrksp");
+    # divide collection size by 2 to account for replication
+    *collectionSize = getCollectionSize(*collection, "wrksp") / 2;
     writeLine("serverLog", "Workspace collection size for *collection is *collectionSize bytes");
 }
 
