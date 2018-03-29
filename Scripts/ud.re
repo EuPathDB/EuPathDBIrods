@@ -388,14 +388,7 @@ acTriggerEvent() {
 	*irodsIdValue = getAttributeFromCollectionMetadata(*literals.irodsId, *literals.homePath);
     *argv = str(*irodsIdValue);
 	writeLine("serverLog", "Passing *argv");
-
-	# Done this way to identify any issues with the python script
-    *status = errorcode(msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobOutput));
-	if(*status != 0) {
-	    msiGetStdoutInExecCmdOut(*jobOutput, *jobOut);
-	    writeLine("serverLog", "Error:  *jobOut");
-	    msiGoodFailure;
-	}
+	msiExecCmd("executeJobFile.py", *argv, "null", "null", "null", *jobOutput);
     msiGetStdoutInExecCmdOut(*jobOutput, *jobOut);
 	writeLine("serverLog", "Output from the python call: *jobOut");
 }
