@@ -434,12 +434,12 @@ acSystemIssue(*identifier, *subject, *warning, *error) {
     if(*error != 'warning') {
         writeLine("serverLog", "Error *subject - *identifier : *error");
         *userMessage = "The export did not proceed properly.  EuPathDB staff are looking into the issue.";
-        msiSendMail("criswlawrence@gmail.com", "Error *subject", "*identifier: *error");
+        msiSendMail("ud_notify@apidb.org", "Error *subject", "*identifier: *error");
         acCreateCompletionFlag(*identifier, *userMessage, "failure");
     }
     else {
         writeLine("serverLog","Warning *subject - *identifier : *warning");
-        msiSendMail("criswlawrence@gmail.com", "Warning *subject", "*identifier: *warning");
+        msiSendMail("ud_notify@apidb.org", "Warning *subject", "*identifier: *warning");
         acCreateCompletionFlag(*identifier, *warning, "success");
     }
     msiGoodFailure;
