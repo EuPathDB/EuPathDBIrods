@@ -145,7 +145,6 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
   	        *exists = checkForCollectionExistence(*userDatasetPath);
   	        if(*exists) {
   	          writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
-  	          msiRmColl(*userDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	        }
   	    }
 
@@ -189,15 +188,6 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	        *error = setIncidentMessage(*error, "Unable to post the install event.");
 	    }
 
-        # Make a RESTful call to Jenkins to process the contents of the events collection.
-	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
-	    acTriggerEvent() ::: {
-	        *error = "warning";
-	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
-	        Jenkins may be offline or the listener job maybe disabled.\n
-	        A later scheduled run should pick up the install event.");
-	    }
-
 	    # Remove the tarball only if everything succeeds
 	    writeLine("serverLog", "Removing *tarballFile tarball.");
 	    msiDataObjUnlink("objPath=*tarballFile++++forceFlag=",*actionStatus) ::: {
@@ -207,6 +197,15 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	} ::: {
 	    acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", *warning, *error);
 	}
+
+        # Make a RESTful call to Jenkins to process the contents of the events collection.
+	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
+	    acTriggerEvent() ::: {
+	        *error = "warning";
+	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
+	        Jenkins may be offline or the listener job maybe disabled.\n
+	        A later scheduled run should pick up the install event.");
+	    }
 
 	# Write out a success message
 	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
