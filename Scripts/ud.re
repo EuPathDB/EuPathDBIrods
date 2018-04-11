@@ -53,26 +53,7 @@ acPreprocForRmColl {
     }
     else {
         if($collName like regex "/ebrc/workspaces/users/.*/datasets/.*" && !($collName like regex "/ebrc/workspaces/users/.*/datasets/.*/.*")) {
-
-                # only run acDatasetPreprodForRmColl if there are data objects
-                # in the replicated resource.  This will let potential
-                # misformed staging deletes not trigger wdk removal, etc.
-                #
-                # NOTE: below I check for the DATA_RESC_NAME, when I'd like to
-                # actually check against DATA_RESC_HIER for the top level
-                # resource.  However,
-                # https://github.com/irods/irods/issues/3714 prevents this
-                # until 4.2.3
-
-                # only one iteration for count
-                foreach (*F in select count(DATA_NAME) where COLL_NAME like '$collName%' and DATA_RESC_NAME like '%wrksp%') {
-                    *A = *F.DATA_NAME
-                }
-                if (int(*A) > 0) then {
-                    acDatasetPreprocForRmColl();
-                } else {
-                    writeLine("serverLog", "$collName contains no installed data, removing as normal");
-                }
+	        acDatasetPreprocForRmColl();
 	    }
 	}
 }
@@ -139,19 +120,20 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    # the user's collection of datasets will trigger a PEP.  This approach avoids that.
 	    *stagingDatasetPath = *literals.stagingAreaPath ++ "/$dataId";
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
-	    writeLine("serverLog", "Unpacking *tarballFile to $rescName, *userDatasetPath");
-  	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
-  	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging resource.");
-  	        *exists = checkForCollectionExistence(*userDatasetPath);
+	    writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
+  	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
+  	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging area.");
+  	        *exists = checkForCollectionExistence(*stagingDatasetPath);
   	        if(*exists) {
   	          writeLine("serverLog", "Undo misTarFileExtract - remove the collection from the staging area.");
+  	          msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
   	        }
   	    }
 
   	    # re-check site of user's new unpacked dataset to see whether the size, when added to the
   	    # current workspace, will put the user over quota.
   	    writeLine("serverLog", "Checking whether new unpacked user dataset will put user over quota");
-            *datasetSize = getCollectionSize(*userDatasetPath, "stage");
+  	    *datasetSize = getCollectionSize(*stagingDatasetPath);
   	    if(*datasetSize + *collectionSize > *defaultQuota) {
   	      acUserIssue(trimr(*fileName,"."), *message);
   	      msiGoodFailure;
@@ -159,25 +141,17 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 
         # Create a new install event content in json format (action and recipient id do not apply here)
 	    writeLine("serverLog", "Generating the install event data");
-	    acGenerateEventJson(*userDatasetPath, "install", $dataId, "", "", *eventContent) ::: {
+	    acGenerateEventJson(*stagingDatasetPath, "install", $dataId, "", "", *eventContent) ::: {
 	        *error = setIncidentMessage(*error, "Unable to generate json content for the event file.");
 	    }
 
-            # Replicate the dataset into the workspaces resource now that it
-            # appears valid, then trim off staging resource replicas.  Valid
-            # means essentially that the tarball is unpackable and contains a
-            # dataset.json file.
-            #
-            msiCollRepl("*userDatasetPath", "destRescName=ebrcResc++++all", *status);
-            writeLine("serverLog", "result of repl for *userDatasetPath : *status");
-            *Q = select DATA_NAME, COLL_NAME, DATA_RESC_HIER where COLL_NAME like '*userDatasetPath%' and DATA_RESC_NAME like 'stage%';
-            foreach (*R in *Q) {
-                *file = *R.DATA_NAME
-                *coll = *R.COLL_NAME
-                writeLine("serverLog", "trimming: *coll/*file");
-                msiDataObjTrim("*coll/*file", "stageResc", "null", "2", "null", *status);
-                writeLine("serverLog", "result: *status");
-            }
+	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
+	    # that the tarball is unpackable and contains a dataset.json file.
+	    writeLine("serverLog", "Unpacking the tarball into the user's datasets collection");
+	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
+	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the user's datasets collection.\n
+	        Any leftover may compromise the GUI.");
+	    }
 
         # Post the new json formatted install event
         writeLine("serverLog", "Posting the new install event in json format.");
@@ -206,6 +180,9 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	        Jenkins may be offline or the listener job maybe disabled.\n
 	        A later scheduled run should pick up the install event.");
 	    }
+
+# Delete the user dataset placed in the staging area as we are now done with it.
+    msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus)
 
 	# Write out a success message
 	*message = "tarball *fileName unpacked to *userDatasetPath and event posted\n";
@@ -329,7 +306,7 @@ acGetWorkspaceUsed(*userId, *collectionSize) {
     *literals = getLiterals();
     *collection = *literals.usersPath ++ "/*userId";
     # divide collection size by 2 to account for replication
-    *collectionSize = getCollectionSize(*collection, "wrksp") / 2;
+    *collectionSize = getCollectionSize(*collection) / 2;
     writeLine("serverLog", "Workspace collection size for *collection is *collectionSize bytes");
 }
 
@@ -493,8 +470,8 @@ getLiterals() = {
 }
 
 # Convenience method to retrieve the size, in bytes, occupied by a collection.
-getCollectionSize(*collection, *resc_prefix) = {
-  *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '*collection/%' and DATA_RESC_NAME like '*resc_prefix%';
+getCollectionSize(*collection) = {
+  *results =  SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '*collection/%';
   *collectionSize = 0;
   # One iteration only expected
   foreach(*result in *results) {
