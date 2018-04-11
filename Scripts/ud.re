@@ -145,11 +145,11 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	        *error = setIncidentMessage(*error, "Unable to generate json content for the event file.");
 	    }
 
-	    # Unpack the tarball into the user's datasets collection now that it appears valid.  Valid means essentially
+	    # Rsync into the user's datasets collection now that it appears valid.  Valid means essentially
 	    # that the tarball is unpackable and contains a dataset.json file.
-	    writeLine("serverLog", "Unpacking the tarball into the user's datasets collection");
-	    msiTarFileExtract(*tarballFile, *userDatasetPath, $rescName, *actionStatus) ::: {
-	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the user's datasets collection.\n
+	    writeLine("serverLog", "Rsyncing the tarball into the user's datasets collection. This generates CAT_NO_ROWS_FOUND errors when looking for the non-existent objects");
+            msiCollRsync(*stagingDatasetPath, *userDatasetPath, "ebrcResc", "IRODS_TO_IRODS", *actionStatus) ::: {
+	        *error = setIncidentMessage(*error, "Unable to rsync the staging collection into the user's datasets collection.\n
 	        Any leftover may compromise the GUI.");
 	    }
 
