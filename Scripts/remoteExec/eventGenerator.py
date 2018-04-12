@@ -66,7 +66,7 @@ def main():
           event_json['action'] = action
           event_json['recipient'] = recipient
 
-      output = "event=" + json.dumps(event_json) + "%event_file_name=" + "event_" + str(event_json['eventId']) + ".json"
+      output = "event=" + json.dumps(event_json) + "%event_file_name=" + "event_" + str(event_json['eventId']) + "_" + str(os.getpid()) + ".json"
       sys.stdout.write(output)
 
     # Intended to provide diagnostic information back to the IRODS server log.  Otherwise the msiExecCmd can fail
