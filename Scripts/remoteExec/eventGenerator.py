@@ -3,6 +3,7 @@
 import sys
 import json
 import time
+import os
 
 """
 Utility to tack onto a string representation of the dataset.json file accompanying the user dataset, additional event information
