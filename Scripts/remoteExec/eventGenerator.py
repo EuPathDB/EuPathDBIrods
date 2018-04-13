@@ -60,14 +60,16 @@ def main():
       dataset_id = args[2]
       action = args[3]
       recipient = args[4]
-      event_json['eventId'] = int(time.time()*1000)
+      pid = '{0:0>8}'.format(str(os.getpid()))
+      uuid = str(int(time.time())) + pid
+      event_json['eventId'] = int(uuid)
       event_json['event'] =  event
       event_json['datasetId'] = dataset_id
       if action != None and len(action) > 0 and recipient != None and len(recipient) > 0:
           event_json['action'] = action
           event_json['recipient'] = recipient
 
-      output = "event=" + json.dumps(event_json) + "%event_file_name=" + "event_" + str(event_json['eventId']) + "_" + str(os.getpid()) + ".json"
+      output = "event=" + json.dumps(event_json) + "%event_file_name=" + "event_" + str(event_json['eventId']) + ".json"
       sys.stdout.write(output)
 
     # Intended to provide diagnostic information back to the IRODS server log.  Otherwise the msiExecCmd can fail
