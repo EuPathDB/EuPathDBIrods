@@ -2,3 +2,7 @@ project	database	location
 PlasmoDB	plas-inc	north
 FungiDB	fung-inc	north
 HostDB	host-inc	north
+ToxoDB	toxo-inc	north
+AmoebaDB	ameb-inc	north
+CryptoDB	cryp-inc	north
+GiardiaDB	giar-inc	north
