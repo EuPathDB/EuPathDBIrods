@@ -1,17 +1,15 @@
 project	database	location
-AmoebaDB	ameb-inc	north
-CryptoDB	cryp-inc	north
-EuPathDB	eupa-inc	north
-FungiDB	fung-inc	north
-GiardiaDB	giar037n	north
-HostDB	host-inc	north
-MicrosporidiaDB	micr037n	north
-PiroplasmaDB	piro037n	north
-PlasmoDB	plas037n	north
-SchistoDB	schi037n	north
-ToxoDB	toxo037n	north
-TrichDB	tvag037n	north
-TriTrypDB	tryp037n	north
-
-
+AmoebaDB	auto	both
+CryptoDB	auto	both
+EuPathDB	auto	both
+FungiDB	auto	both
+GiardiaDB	auto	both
+HostDB	auto	both
+MicrosporidiaDB	auto	both
+PiroplasmaDB	auto	both
+PlasmoDB	auto	both
+SchistoDB	auto	both
+ToxoDB	auto	both
+TrichDB	auto	both
+TriTrypDB	auto	both
 
