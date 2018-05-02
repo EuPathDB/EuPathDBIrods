@@ -63,7 +63,7 @@ public class BuildEventsFile {
       // Insure that the dataset store that triggered this event handling operation is the
       // same as the one with which this code communicates.
       if(dsStore.getId() == null || !dsStore.getId().equals(datasetStoreId)) {
-        throw new RuntimeException("Called by wrong datastore " + datasetStoreId);
+        throw new RuntimeException("Called by wrong datastore " + datasetStoreId + ". Expecting " + dsStore.getId());
       }
 
       // Collect a subset of the event files from the events folder in the datastore.
