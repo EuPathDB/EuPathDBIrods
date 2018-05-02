@@ -54,8 +54,8 @@ modelconfig_userDb_connectionUrl: 'jdbc:oracle:oci:@{{ userdb_shortname }}'
 
 # irods config
 
-modelconfig_userDatasetStoreConfig_irods_host: sorva.gacrc.uga.edu
-modelconfig_userDatasetStoreConfig_irods_login: wrkspuser
+modelconfig_userDatasetStoreConfig_irods_host: irods.qa.eupathdb.org
+modelconfig_userDatasetStoreConfig_irods_login: qawrkspuser
 modelconfig_userDatasetStoreConfig_irods_password: "{{ password['irods'] }}"
 modelconfig_userDatasetStoreConfig_irods_resource: ebrcResc
 modelconfig_userDatasetStoreConfig_irods_rootPath: /ebrc/workspaces/users
