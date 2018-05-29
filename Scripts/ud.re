@@ -79,21 +79,22 @@ acPostProcForCreate {
 # and the dataset id.
 acLandingZonePostProcForPut(*fileDir, *fileName) {
 
-    *literals = getLiterals();
+  *literals = getLiterals();
 
 	# insure the the user id is a positive number
 	writeLine("serverLog", "Checking user id");
 	*userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
 	if(*userId <= 0) {
-	    acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
+	  acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	}
 
-    # check user's workspace consumption and proceed only if under quota.
-    writeLine("serverLog", "Checking whether user is already over quota.");
-    acGetDefaultQuota(*defaultQuota);
+  # check user's workspace consumption and proceed only if under quota.
+  writeLine("serverLog", "Checking whether user is already over quota.");
+  acGetDefaultQuota(*defaultQuota);
 	acGetWorkspaceUsed(*userId, *collectionSize);
-	*quotaMegabytes = *defaultQuota/1000000;
-	*message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
+	
+	# default quota now in megabytes
+	*message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *defaultQuota megabytes.";
 	if(*collectionSize > *defaultQuota) {
 	    acUserIssue(trimr(*fileName,"."), *message);
 	    msiGoodFailure;
@@ -169,6 +170,11 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	        *warning = setIncidentMessage(*warning, "Unable to remove the tarball.");
 	    }
 	} ::: {
+      *exists = checkForCollectionExistence(*stagingDatasetPath);
+      if(*exists) {
+        writeLine("serverLog", "Recovery - remove the collection from the staging area.");
+        msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus);  # clean up the staging area
+      }
 	    acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", *warning, *error);
 	}
 
@@ -176,9 +182,8 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	    writeLine("serverLog", "Triggering delivery of events to Jenkins.");
 	    acTriggerEvent() ::: {
 	        *error = "warning";
-	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.\n
-	        Jenkins may be offline or the listener job maybe disabled.\n
-	        A later scheduled run should pick up the install event.");
+	        *warning = setIncidentMessage(*warning, "Unable to trigger the Jenkins listener.
+Jenkins may be offline or the listener job maybe disabled.  A later scheduled run should pick up the install event.");
 	    }
 
 # Delete the user dataset placed in the staging area as we are now done with it.
