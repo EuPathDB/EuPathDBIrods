@@ -83,8 +83,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 
 	  # insure the the user id is a positive number
 	  writeLine("serverLog", "Checking user id");
-	  *userId = int(trimr(triml(*fileName,"_u"),"_t"));  #expect file name in format dataset_u\d+_t\d+.tgz
-	  if(*userId <= 0) {
+	  *userId = int(trimr(triml(*fileName,"_u"),"_t")) ::: {  #expect file name in format dataset_u\d+_t\d+.tgz
 	      acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
 	  }
 
