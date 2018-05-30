@@ -81,10 +81,17 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 
     *literals = getLiterals();
 
-	  # insure the the user id is a positive number
+	  # insure the the user id is numeric (don't know another way to do it in the rule language)
 	  writeLine("serverLog", "Checking user id");
-	  *userId = int(trimr(triml(*fileName,"_u"),"_t")) ::: {  #expect file name in format dataset_u\d+_t\d+.tgz
-	      acSystemFailure(trimr(*fileName,"."), "IRODS acPostProcForPut Error", "The tarball filename, *fileName was mis-formatted.  No event was posted.");
+	  *userId = int(trimr(triml(*fileName,"_u"),"_t"));
+	  if(int(*userId) > 0) {
+	  }
+	  else {
+	      writeLine("serverLog", "User id is not numeric");
+	      cleanup(*fileDir, *fileName, '');
+	      *error = "The tarball filename, *fileName was mis-formatted.  No event was posted."
+	      acSystemIssue(trimr(*fileName,"."), "IRODS acPostProcForPut", "", *error);
+	      msiGoodFailure;
 	  }
 
     # check user's workspace consumption and proceed only if under quota.
@@ -95,6 +102,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  *quotaMegabytes = *defaultQuota/1000000;
 	  *message = "The dataset you are trying to export to EuPathDB would put you over your quota there.  Your quota there is *quotaMegabytes megabytes.";
 	  if(*collectionSize > *defaultQuota) {
+	      cleanup(*fileDir, *fileName, '');
 	      acUserIssue(trimr(*fileName,"."), *message);
 	      msiGoodFailure;
 	  }
@@ -104,6 +112,7 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	  *tarballFile = *fileDir ++ "/" ++ *fileName;
 	  acGetDataObjectSize(*tarballFile, *tarballSize);
 	  if(*tarballSize + *collectionSize > *defaultQuota) {
+	      cleanup(*fileDir, *fileName, '');
 	      acUserIssue(trimr(*fileName,"."), *message);
 	      msiGoodFailure;
 	  }
@@ -121,8 +130,8 @@ acLandingZonePostProcForPut(*fileDir, *fileName) {
 	      *stagingDatasetPath = *literals.stagingAreaPath ++ "/$dataId";
         *userDatasetPath = "/ebrc/workspaces/users/*userId/datasets/$dataId";
 	      writeLine("serverLog", "Unpacking *tarballFile to *stagingDatasetPath");
-  	    msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
-  	        *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging area.");
+  	      msiTarFileExtract(*tarballFile, *stagingDatasetPath, $rescName, *actionStatus) ::: {
+  	          *error = setIncidentMessage(*error, "Unable to unpack the tarball into the staging area.");
   	    }
 
   	    # re-check site of user's new unpacked dataset to see whether the size, when added to the
@@ -486,9 +495,12 @@ cleanup(*tarballDir, *tarballName, *stagingDatasetPath) = {
     }
 
     # Delete the user dataset placed in the staging area as we are now done with it.
-    *collectionExists = checkForCollectionExistence(*stagingDatasetPath);
-    if(*collectionExists) {
-        writeLine("serverLog", "Cleanup - Removing *stagingDatasetPath collection.");
-        errorcode(msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus));
+    if(strlen(*stagingDatasetPath) > 0) {
+        *collectionExists = checkForCollectionExistence(*stagingDatasetPath);
+        if(*collectionExists) {
+            writeLine("serverLog", "Cleanup - Removing *stagingDatasetPath collection.");
+            errorcode(msiRmColl(*stagingDatasetPath, "forceFlag=", *actionStatus));
+        }
     }
+    writeLine("serverLog", "Cleanup complete");
 }
