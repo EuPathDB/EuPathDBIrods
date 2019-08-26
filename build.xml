@@ -5,62 +5,34 @@
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <import file="${projectsDir}/WDK/build.xml" />
-	<import file="${projectsDir}/EbrcWebsiteCommon/build.xml" />
-	<import file="${projectsDir}/ApiCommonModel/build.xml" />
-	<import file="${projectsDir}/ApiCommonData/build.xml" />
-
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooo    Checkout    oooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-
-  <target name="WDK-ChildCheckout">
-    <available file="${projectsDir}/WDK" type="dir"  property="WDK.present" />
-    <antcall target="WDK-Checkout"/>
-  </target>
-
-  <target name="WDK-Checkout" unless="WDK.present">
-    <ant target="defaultProjectCheckout" inheritAll="false">
-      <property name="svnurl" value="https://cbilsvn.pmacs.upenn.edu/svn/gus/WDK"/>
-      <property name="project" value="WDK"/>
-      <property name="version" value="WDK_version_1-29"/>
-    </ant>
-  </target>
-
-    
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooo    Update    oooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-
-  <target name="EuPathDBIrods-ChildUpdate">
-    <ant target="defaultProjectUpdate">
-      <property name="project" value="WDK"/>
-    </ant>
-  </target>
+  <import file="${projectsDir}/EbrcWebsiteCommon/build.xml" />
+  <import file="${projectsDir}/ApiCommonModel/build.xml" />
+  <import file="${projectsDir}/ApiCommonData/build.xml" />
 
 
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
-	<!-- TODO add ApiCommonData-Installation on a richer vagrant -->
+  <!-- TODO add ApiCommonData-Installation on a richer vagrant -->
   <target name="EuPathDBIrods-Installation" depends="
                                            WDK-Installation,
-  	                                       ApiCommonModel-Installation,
-  	                                       ApiCommonData-Installation,
-  	                                       EbrcWebsiteCommon-Installation,
+                                           ApiCommonModel-Installation,
+                                           ApiCommonData-Installation,
+                                           EbrcWebsiteCommon-Installation,
                                            EuPathDBIrods-MavenInstallation,
                                            EuPathDBIrods/Model-Installation,
                                            EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
-      <property name="project" value="EuPathDBIrods"/>
+      <property name="project" value="EuPathDBIrods" />
     </ant>
   </target>
 
   <target name="EuPathDBIrods-MavenInstallation">
     <ant target="mavenBuildProject">
-      <property name="project" value="EuPathDBIrods"/>
+      <property name="project" value="EuPathDBIrods" />
     </ant>
-    <property name="alreadyBuilt" value="true"/>
+    <property name="alreadyBuilt" value="true" />
   </target>
 
 
@@ -68,29 +40,29 @@
 
   <target name="EuPathDBIrods/Controller-Installation">
     <ant target="defaultComponentInstall">
-      <property name="project" value="EuPathDBIrods"/>
-      <property name="component" value="Controller"/>
-    </ant>
-  </target>  
-
-  <target name="EuPathDBIrods/Model-Installation">
-    <ant target="defaultComponentInstall">
-      <property name="project" value="EuPathDBIrods"/>
-      <property name="component" value="Model"/>
+      <property name="project" value="EuPathDBIrods" />
+      <property name="component" value="Controller" />
     </ant>
   </target>
 
- 
+  <target name="EuPathDBIrods/Model-Installation">
+    <ant target="defaultComponentInstall">
+      <property name="project" value="EuPathDBIrods" />
+      <property name="component" value="Model" />
+    </ant>
+  </target>
+
+
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooo  Release  ooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <target name="EuPathDBIrods-Release">
-    
+
     <ant target="defaultProjectRelease">
-      <property name="cvsroot" value=":ext:cvs.sanger.ac.uk:/cvsroot/GUS"/>
+      <property name="cvsroot" value=":ext:cvs.sanger.ac.uk:/cvsroot/GUS" />
     </ant>
-  </target>  
+  </target>
 
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooo  Distributable  ooooooooooooooooooooooooo -->
@@ -99,11 +71,11 @@
   <target name="EuPathDBIrods-Distributable">
 
     <copy todir="${targetDir}">
-      <fileset dir="${projectsDir}" >
+      <fileset dir="${projectsDir}">
         <exclude name="**/CVS/*" />
       </fileset>
-    </copy>  
-  </target>  
+    </copy>
+  </target>
 
 </project>
 
