@@ -80,7 +80,7 @@ public class BuildEventsFile {
       // Read the contents of recent json formatted event files into JSON objects and collect
       // those JSON objects into a JSON array.
       //TODO - eventJsonArray could produce big memory footprint if we handle large number of event files. 
-      for(Path eventFile : dsSession.getRecentEvents(EVENTS_DIR, lastHandledEventId)) {
+      for(Path eventFile : dsSession.getRecentEvents(EVENTS_DIR, lastHandledEventId == null ? 0L : lastHandledEventId)) {
         if(eventFile.getFileName().toString().endsWith(".json")) {
           String event = dsAdaptor.readFileContents(eventFile);
           JSONObject eventJson = new JSONObject(event);
