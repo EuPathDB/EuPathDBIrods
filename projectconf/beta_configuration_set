@@ -1,7 +1,6 @@
 project	database	location
 AmoebaDB	auto	both
 CryptoDB	auto	both
-EuPathDB	auto	both
 FungiDB	auto	both
 GiardiaDB	auto	both
 HostDB	auto	both
