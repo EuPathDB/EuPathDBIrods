@@ -16,7 +16,7 @@
   
     <dependency>
       <groupId>org.gusdb</groupId>
-      <artifactId>fgputil-util</artifactId>
+      <artifactId>fgputil-db</artifactId>
     </dependency>
   
    <dependency>
@@ -24,21 +24,6 @@
       <artifactId>wdk-model</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>commons-digester</groupId>
-      <artifactId>commons-digester</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>net.sf.saxon</groupId>
-      <artifactId>saxon-dom</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>xalan</groupId>
-      <artifactId>serializer</artifactId>
-    </dependency>
-    
     <dependency>
       <groupId>org.irods.jargon</groupId>
       <artifactId>jargon-core</artifactId>
@@ -48,7 +33,17 @@
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
     </dependency>
-  
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+    </dependency>
+
   </dependencies>
 
 </project>
