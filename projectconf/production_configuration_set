@@ -5,6 +5,7 @@ EuPathDB	auto	both
 FungiDB	auto	both
 GiardiaDB	auto	both
 HostDB	auto	both
+MicrobiomeDB	auto	both
 MicrosporidiaDB	auto	both
 PiroplasmaDB	auto	both
 PlasmoDB	auto	both
