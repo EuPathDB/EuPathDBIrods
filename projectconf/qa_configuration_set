@@ -4,7 +4,7 @@ CryptoDB	auto	north
 FungiDB	auto	north
 GiardiaDB	auto	north
 HostDB	auto	north
-MicrosporidiaDB	auto	both
+MicrosporidiaDB	auto	north
 MicrobiomeDB	auto	north
 PiroplasmaDB	auto	north
 PlasmoDB	auto	north
