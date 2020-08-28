@@ -13,4 +13,5 @@ SchistoDB	auto	both
 ToxoDB	auto	both
 TrichDB	auto	both
 TriTrypDB	auto	both
+VectorBase	auto	both
 
