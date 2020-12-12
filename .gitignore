@@ -8,7 +8,7 @@
 .project
 .classpath
 .vscode
-
+.factorypath
 
 # Build directories
 /build/
