@@ -9,7 +9,6 @@ MicrobiomeDB	auto	both
 MicrosporidiaDB	auto	both
 PiroplasmaDB	auto	both
 PlasmoDB	auto	both
-SchistoDB	auto	both
 ToxoDB	auto	both
 TrichDB	auto	both
 TriTrypDB	auto	both
