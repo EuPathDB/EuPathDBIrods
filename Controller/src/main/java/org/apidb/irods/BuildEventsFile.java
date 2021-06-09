@@ -50,8 +50,10 @@ public class BuildEventsFile
     switch (mode) {
       case "sync":
         syncMode(projectId, datasetStoreId);
+        break;
       case "cleanup":
         cleanupMode(projectId);
+        break;
       default:
         LOG.error("Unset or invalid RUN_MODE value.  Must be one of \"sync\" or \"cleanup\".");
     }
