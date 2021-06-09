@@ -26,10 +26,10 @@ import org.gusdb.wdk.model.user.dataset.event.raw.UDEvent;
  *
  * @author crisl-adm
  */
-public class BuildEventsFile
+public class ProcessIrodsEvents
 {
 
-  private static final Logger LOG        = Logger.getLogger(BuildEventsFile.class);
+  private static final Logger LOG        = Logger.getLogger(ProcessIrodsEvents.class);
   public static final  String EVENTS_DIR = "/ebrc/workspaces/events";
 
   public static void main(String[] args) throws Exception {
