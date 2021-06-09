@@ -26,8 +26,7 @@ import org.gusdb.wdk.model.user.dataset.event.raw.UDEvent;
  *
  * @author crisl-adm
  */
-public class BuildEventsFile
-{
+public class BuildEventsFile {
 
   private static final Logger LOG        = Logger.getLogger(BuildEventsFile.class);
   public static final  String EVENTS_DIR = "/ebrc/workspaces/events";
@@ -59,12 +58,12 @@ public class BuildEventsFile
     }
   }
 
-  private static void syncMode(String projectID, String datasetStoreID) throws WdkModelException {
+  private static void syncMode(String projectId, String datasetStoreId) throws WdkModelException {
     // Create a dataset event handler to process the resulting events JSON
     // array.  The dataset event handler constructor uses the provided projectId
     // to initialize and populate the user dataset store and provide the
     // temporary directory url.
-    var handler = new UserDatasetEventSync(projectID);
+    var handler = new UserDatasetEventSync(projectId);
     var dsStore = handler.getUserDatasetStore();
 
     // Open the user dataset session for processing the event list.
@@ -72,12 +71,8 @@ public class BuildEventsFile
 
       // Insure that the dataset store that triggered this event handling
       // operation is the same as the one with which this code communicates.
-      if (dsStore.getId() == null || !dsStore.getId().equals(datasetStoreID)) {
-        throw new RuntimeException(String.format(
-          "Called by wrong datastore %s. Expecting %s.",
-          datasetStoreID,
-          dsStore.getId()
-        ));
+      if(dsStore.getId() == null || !dsStore.getId().equals(datasetStoreId)) {
+        throw new RuntimeException("Called by wrong datastore " + datasetStoreId + ". Expecting " + dsStore.getId());
       }
 
       // Collect a subset of the event files from the events folder in the
@@ -96,9 +91,7 @@ public class BuildEventsFile
 
       // Read the contents of recent json formatted event files into JSON
       // objects and collect those JSON objects into a JSON array.
-      //
-      // TODO: eventJsonArray could produce big memory footprint if we handle
-      //       large number of event files.
+      // TODO - eventJsonArray could produce big memory footprint if we handle large number of event files.
       var eventJsonArray = new LinkedList<UDEvent>();
       var eventFiles = dsSession.getRecentEvents(
         EVENTS_DIR,
