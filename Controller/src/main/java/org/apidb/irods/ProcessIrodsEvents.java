@@ -94,6 +94,8 @@ public class ProcessIrodsEvents {
         throw new WdkModelException(e);
       }
 
+      logger.info("Last handled event: " + lastHandledEventId);
+
       // Read the contents of recent json formatted event files into JSON
       // objects and collect those JSON objects into a JSON array.
       //TODO - eventJsonArray could produce big memory footprint if we handle large number of event files.
