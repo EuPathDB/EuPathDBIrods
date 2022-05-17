@@ -9,32 +9,21 @@
   <import file="${projectsDir}/ApiCommonModel/build.xml" />
   <import file="${projectsDir}/ApiCommonData/build.xml" />
 
-
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
   <!-- TODO add ApiCommonData-Installation on a richer vagrant -->
-  <target name="EuPathDBIrods-Installation" depends="
-                                           WDK-Installation,
-                                           ApiCommonModel-Installation,
-                                           ApiCommonData-Installation,
-                                           EbrcWebsiteCommon-Installation,
-                                           EuPathDBIrods-MavenInstallation,
-                                           EuPathDBIrods/Model-Installation,
-                                           EuPathDBIrods/Controller-Installation">
+  <target name="EuPathDBIrods-Installation" depends="WDK-Installation,
+                                                     ApiCommonModel-Installation,
+                                                     ApiCommonData-Installation,
+                                                     EbrcWebsiteCommon-Installation,
+                                                     EuPathDBIrods/Model-Installation,
+                                                     EuPathDBIrods/Controller-Installation">
     <ant target="defaultProjectInstall">
       <property name="project" value="EuPathDBIrods" />
     </ant>
   </target>
-
-  <target name="EuPathDBIrods-MavenInstallation">
-    <ant target="mavenBuildProject">
-      <property name="project" value="EuPathDBIrods" />
-    </ant>
-    <property name="alreadyBuilt" value="true" />
-  </target>
-
 
   <!-- ooooooooooooooooooooooo  Install Components  ooooooooooooooooooooooo -->
 
@@ -52,30 +41,4 @@
     </ant>
   </target>
 
-
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooooo  Release  ooooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-
-  <target name="EuPathDBIrods-Release">
-
-    <ant target="defaultProjectRelease">
-      <property name="cvsroot" value=":ext:cvs.sanger.ac.uk:/cvsroot/GUS" />
-    </ant>
-  </target>
-
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooo  Distributable  ooooooooooooooooooooooooo -->
-  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
-
-  <target name="EuPathDBIrods-Distributable">
-
-    <copy todir="${targetDir}">
-      <fileset dir="${projectsDir}">
-        <exclude name="**/CVS/*" />
-      </fileset>
-    </copy>
-  </target>
-
 </project>
-
