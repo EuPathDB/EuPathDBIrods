@@ -1,5 +1,6 @@
 project	database	location
 AmoebaDB	auto	north
+ClinEpiDB	auto	north
 CryptoDB	auto	north
 FungiDB	auto	north
 GiardiaDB	auto	north
