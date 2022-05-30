@@ -107,10 +107,10 @@ public class ProcessIrodsEvents {
         }
       }
       logger.info("Events JSON array:" + JsonUtil.prettyPrint(eventJsonArray));
-    }
 
-    // Process the events
-    handler.handleEventList(UserDatasetEventSync.parseEventsArray(eventJsonArray));
+      // Process the events
+      handler.handleEventList(UserDatasetEventSync.parseEventsArray(eventJsonArray));
+    }
   }
 
   private static void cleanupMode(String projectID) throws WdkModelException {
