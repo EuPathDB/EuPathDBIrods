@@ -32,7 +32,7 @@ databasePassword={{ gusconfig_databasePassword }}
 # Username, group, and project info from the relevant Core tables
 # All rows written by you will be tagged with this information
 userName={{ gusconfig_userName }}
-group=dontcare
+group={{ project }} # Only needed for installers in which data production system is used for loading.
 project={{ project }}  # eg, PlasmoDB.  Workflow configuration must agree with this
 
 # override "tablespace=" attribute of <table> entities in gus_schema.xml
