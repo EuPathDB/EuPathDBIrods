@@ -1,5 +1,6 @@
 project	database	location
 AmoebaDB	auto	both
+ClinEpiDB	auto	both
 CryptoDB	auto	both
 EuPathDB	auto	both
 FungiDB	auto	both
