@@ -109,7 +109,7 @@ public class ProcessIrodsEvents {
 
     String mode = System.getenv(ENV_RUN_MODE);
 
-    logger.info("Parameters - Project: " + projectId
+    logger.info("Parameters - Project(s): " + projectIds
       + ", Dataset Store: " + datasetStoreId
       + ", Run Mode: " + mode);
 
