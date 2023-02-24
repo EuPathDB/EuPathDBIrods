@@ -1,7 +1,10 @@
 package org.apidb.irods;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.sql.DataSource;
 
@@ -64,6 +67,8 @@ public class ProcessIrodsEvents {
 
   private static final String ENV_PROJECT_ID = "PROJECT_ID";
 
+  private static final String ENV_PROJECT_IDS = "PROJECT_IDS";
+
   private static final String ENV_DATASTORE_ID = "DATASET_STORE_ID";
 
   private static final String ENV_RUN_MODE = "RUN_MODE";
@@ -87,8 +92,23 @@ public class ProcessIrodsEvents {
 
   public static void main(String[] args) throws Exception {
 
-	  // The id of the project for which these events are intended.
+    String rawProjectIds = System.getenv(ENV_PROJECT_IDS);
     String projectId = System.getenv(ENV_PROJECT_ID);
+    List<String> projectIds;
+    if (rawProjectIds == null && projectId == null) {
+      throw new IllegalStateException("Only one of " + ENV_PROJECT_ID + " or " + ENV_PROJECT_IDS + " must be set in environment");
+    }
+
+    if (rawProjectIds != null && projectId != null) {
+      throw new IllegalStateException("Exactly one of " + ENV_PROJECT_ID + " and " + ENV_PROJECT_IDS + " must be set in environment");
+    }
+
+    // The id of the project for which these events are intended.
+    if (rawProjectIds != null) {
+      projectIds = Arrays.asList(rawProjectIds.split(","));
+    } else {
+      projectIds = Arrays.asList(projectId);
+    }
 
     // Identifies the datastore associated with the events to be handled.
     // Used to ensure that this datastore matches the one this build supports.
@@ -96,30 +116,30 @@ public class ProcessIrodsEvents {
 
     String mode = System.getenv(ENV_RUN_MODE);
 
-    logger.info("Parameters - Project: " + projectId
+    logger.info("Parameters - Project(s): " + projectIds
       + ", Dataset Store: " + datasetStoreId
       + ", Run Mode: " + mode);
 
     switch (mode) {
       case "sync":
-        syncMode(projectId, datasetStoreId);
+        syncMode(projectIds, datasetStoreId);
         break;
       case "cleanup":
-        cleanupMode(projectId);
+        cleanupMode(projectIds);
         break;
       default:
         logger.error("Unset or invalid RUN_MODE value.  Must be one of \"sync\" or \"cleanup\".");
     }
   }
 
-  private static void syncMode(String projectId, String datasetStoreId) throws WdkModelException {
+  private static void syncMode(List<String> projectIds, String datasetStoreId) throws WdkModelException {
     var eventJsonArray = new LinkedList<UDEvent>();
 
     // Create a dataset event handler to process the resulting events list.
     // The dataset event handler constructor uses the provided projectId
     // to initialize and populate the user dataset store and provide the
     // temporary directory url.
-    var handler = new UserDatasetEventSync(projectId);
+    var handler = new UserDatasetEventSync(projectIds);
     var dsStore = handler.getUserDatasetStore();
 
     // Open the user dataset session for processing the event list.
@@ -165,8 +185,8 @@ public class ProcessIrodsEvents {
     }
   }
 
-  private static void cleanupMode(String projectID) throws WdkModelException {
-    new UserDatasetEventCleanup(projectID).cleanupFailedInstalls();
+  private static void cleanupMode(List<String> projectIds) throws WdkModelException {
+    new UserDatasetEventCleanup(projectIds).cleanupFailedInstalls();
   }
 
   /**
