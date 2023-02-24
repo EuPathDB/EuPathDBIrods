@@ -95,6 +95,13 @@ public class ProcessIrodsEvents {
     String rawProjectIds = System.getenv(ENV_PROJECT_IDS);
     String projectId = System.getenv(ENV_PROJECT_ID);
     List<String> projectIds;
+    if (rawProjectIds == null && projectId == null) {
+      throw new IllegalStateException("Only one of " + ENV_PROJECT_ID + " or " + ENV_PROJECT_IDS + " must be set in environment");
+    }
+
+    if (rawProjectIds != null && projectId != null) {
+      throw new IllegalStateException("Exactly one of " + ENV_PROJECT_ID + " and " + ENV_PROJECT_IDS + " must be set in environment");
+    }
 
     // The id of the project for which these events are intended.
     if (rawProjectIds != null) {
