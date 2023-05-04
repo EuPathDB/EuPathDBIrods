@@ -1,17 +1,3 @@
 project	database	location
-AmoebaDB	auto	both
-ClinEpiDB	auto	both
-CryptoDB	auto	both
-EuPathDB	auto	both
-FungiDB	auto	both
-GiardiaDB	auto	both
-HostDB	auto	both
 MicrobiomeDB	auto	both
-MicrosporidiaDB	auto	both
-PiroplasmaDB	auto	both
-PlasmoDB	auto	both
-ToxoDB	auto	both
-TrichDB	auto	both
-TriTrypDB	auto	both
-VectorBase	auto	both
 
